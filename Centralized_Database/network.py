@@ -8,6 +8,9 @@ from zeroconf import Zeroconf, ServiceInfo
 
 logger = logging.getLogger("database.network")
 
+import uuid
+unique_id = str(uuid.uuid4())[:8]
+
 SERVICE_TYPE = "_assignsysdb._tcp.local."
 SERVER_PORT = 8000  # Django port
 RE_ANNOUNCE_INTERVAL = 30  # <-- Added interval
@@ -71,7 +74,7 @@ class DatabaseBroadcaster:
         )
         self.info = ServiceInfo(
             SERVICE_TYPE,
-            f"AssignmentDatabase.{SERVICE_TYPE}",
+            f"DatabaseServer_{unique_id}._assignsysdb._tcp.local.",
             addresses=[socket.inet_aton(ip)],
             port=SERVER_PORT,
             properties={

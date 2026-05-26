@@ -291,10 +291,13 @@ const installAuthInterceptors = (client) => {
   return client;
 };
 
+const CENTRAL_URL = process.env.REACT_APP_CENTRAL_URL || 'http://localhost:8000';
+const NODE_URL = process.env.REACT_APP_NODE_URL || 'http://localhost:8001';
+
 const createClient = () =>
   installAuthInterceptors(
     axios.create({
-      baseURL: 'http://localhost:8001',
+      baseURL: CENTRAL_URL,
       timeout: TIMEOUT,
       headers: JSON_HEADERS,
     })
@@ -302,7 +305,7 @@ const createClient = () =>
 
 const centralClient = createClient();
 const backendClient = axios.create({
-  baseURL: 'http://localhost:8001',
+  baseURL: NODE_URL,
   timeout: TIMEOUT,
   headers: JSON_HEADERS,
 });

@@ -18,14 +18,30 @@
 .navLogoText { font-size: 17px; font-weight: 700; color: var(--clr-text); }
 .navActions { display: flex; gap: 12px; }
 .content { max-width: 1300px; margin: 0 auto; padding: 40px 32px; }
+.cardsContainer {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 36px;
+  flex-wrap: wrap; /* Allows stacking on mobile */
+}
 .dbCard {
   background: rgba(26,35,64,0.7);
   border: 1px solid rgba(99,120,200,0.2);
   border-radius: 20px;
   padding: 24px 28px;
   backdrop-filter: blur(10px);
-  display: flex; align-items: center; gap: 20px;
-  margin-bottom: 36px;
+  display: flex; 
+  align-items: center; 
+  gap: 20px;
+  
+  /* Add these 2 lines so they share the row equally */
+  flex: 1; 
+  min-width: 300px; 
+  /* (Remove the margin-bottom: 36px if it's still here, the container handles it now) */
+}
+.gatewayCard {
+  border: 1px solid rgba(99,120,200,0.6);
+  background: rgba(30, 41, 75, 0.7);
 }
 .dbIcon {
   width: 52px; height: 52px;

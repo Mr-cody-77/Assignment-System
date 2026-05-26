@@ -12,3 +12,6 @@ laucher/
 .env
 .env.*
 !.env.example
+
+.env.example/
+.env.example

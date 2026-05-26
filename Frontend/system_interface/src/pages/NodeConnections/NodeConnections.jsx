@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NodeTable from '../../components/NodeTable/NodeTable';
 import { getNodeInfo } from '../../services/nodeService';
+import { useToast } from '../../hooks/useToast'; // <-- 1. Imported useToast
 import { formatDate } from '../../utils/formatters';
 import styles from './NodeConnections.module.css';
 
@@ -9,10 +10,15 @@ const REFRESH_INTERVAL = 15000;
 
 const NodeConnections = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast(); // <-- 2. Initialized the hook
+  
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
+  
+  // <-- 3. Added a ref to prevent spamming the toast every 15 seconds
+  const hasToasted = useRef(false); 
 
   const fetchData = useCallback(async () => {
     try {
@@ -20,12 +26,28 @@ const NodeConnections = () => {
       setData(res);
       setLastUpdated(new Date());
       setError('');
+
+      // <-- 4. Trigger the toast ONLY on the first successful fetch
+      if (!hasToasted.current && res) {
+        // Safely extract the gateway node info (fallback to the first node in the array if top-level variables aren't set)
+        const gatewayId = res.node_id || (res.nodes && res.nodes[0]?.node_id) || 'Gateway';
+        const gatewayIp = res.ip || (res.nodes && res.nodes[0]?.ip) || 'Unknown IP';
+        const gatewayPort = res.port || (res.nodes && res.nodes[0]?.port) || 'Unknown Port';
+
+        addToast(
+          `Connected via Gateway: ${gatewayId} (${gatewayIp}:${gatewayPort})`,
+          'success',
+          5000
+        );
+        hasToasted.current = true; // Mark as toasted so it doesn't pop up on the next interval
+      }
+
     } catch (err) {
       setError(err?.message || 'Failed to fetch node information.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]); // Added addToast to dependency array
 
   useEffect(() => {
     fetchData();
@@ -72,26 +94,53 @@ const NodeConnections = () => {
           </div>
         )}
 
-        {/* Database Server card */}
-        {data?.database_server && (
-          <div className={styles.dbCard}>
-            <div className={styles.dbIcon}>🗄️</div>
-            <div className={styles.dbInfo}>
-              <h2>{data.database_server.name || 'Database Server'}</h2>
-              <p style={{ color: 'var(--clr-text-2)', fontSize: 14, marginBottom: 8 }}>
-                Centralized Database Server
-              </p>
-              <div className={styles.dbMeta}>
-                <span className={styles.metaBadge}>
-                  IP: {data.database_server.ip}
-                </span>
-                <span className={styles.metaBadge}>
-                  Port: {data.database_server.port}
-                </span>
+ {/* --- Server Status Cards --- */}
+        <div className={styles.cardsContainer}>
+          
+          {/* Database Server card */}
+          {data?.database_server && (
+            <div className={styles.dbCard}>
+              <div className={styles.dbIcon}>🗄️</div>
+              <div className={styles.dbInfo}>
+                <h2>{data.database_server.name || 'Database Server'}</h2>
+                <p style={{ color: 'var(--clr-text-2)', fontSize: 14, marginBottom: 8 }}>
+                  Centralized Database Server
+                </p>
+                <div className={styles.dbMeta}>
+                  <span className={styles.metaBadge}>
+                    IP: {data.database_server.ip}
+                  </span>
+                  <span className={styles.metaBadge}>
+                    Port: {data.database_server.port}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Current Gateway Node card */}
+          {data?.gateway && (
+            <div className={`${styles.dbCard} ${styles.gatewayCard}`}>
+              <div className={styles.dbIcon}>💻</div>
+              <div className={styles.dbInfo}>
+                <h2>{data.gateway.node_id || 'Gateway Node'}</h2>
+                <p style={{ color: 'var(--clr-text-2)', fontSize: 14, marginBottom: 8 }}>
+                  Your Current Access Node
+                </p>
+                <div className={styles.dbMeta}>
+                  <span className={styles.metaBadge}>
+                    IP: {data.gateway.ip}
+                  </span>
+                  <span className={styles.metaBadge}>
+                    Port: {data.gateway.port}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+        </div>
+        {/* --------------------------- */}
 
         {/* Nodes section */}
         <div className={styles.sectionHeader}>

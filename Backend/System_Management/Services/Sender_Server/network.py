@@ -164,7 +164,7 @@ def _re_announce_loop(zc, info):
 
             new_info = ServiceInfo(
                 NODE_SERVICE_TYPE,
-                f"{runtime.node_id}.{NODE_SERVICE_TYPE}",
+                f"{runtime.node_id}_{runtime.port}.{NODE_SERVICE_TYPE}",
                 addresses=[socket.inet_aton(runtime.ip)],
                 port=runtime.port,
                 properties={
@@ -200,7 +200,7 @@ def start_discovery():
 
     info = ServiceInfo(
         NODE_SERVICE_TYPE,
-        f"{runtime.node_id}.{NODE_SERVICE_TYPE}",
+        f"{runtime.node_id}_{runtime.port}.{NODE_SERVICE_TYPE}",
         addresses=[socket.inet_aton(runtime.ip)],
         port=runtime.port,
         properties={

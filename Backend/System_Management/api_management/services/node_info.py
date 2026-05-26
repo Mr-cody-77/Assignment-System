@@ -116,6 +116,16 @@ def handle_node_info() -> dict:
         }
 
     return {
-        "database_server": db_info,
-        "nodes": nodes_info,
-    }
+            "database_server": db_info,
+            
+            # --- NEW GATEWAY BLOCK ---
+            "gateway": {
+                "node_id": sender_runtime.node_id,
+                "hostname": sender_runtime.hostname,
+                "ip": sender_runtime.ip,
+                "port": sender_runtime.port,
+            },
+            # -------------------------
+            
+            "nodes": nodes_info,
+        }
