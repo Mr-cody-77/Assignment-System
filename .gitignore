@@ -1,0 +1,14 @@
+# Batch files
+*.bat
+
+# Log files
+*.log
+logs/
+
+venv/
+__pycache__/
+installer/
+laucher/
+.env
+.env.*
+!.env.example
