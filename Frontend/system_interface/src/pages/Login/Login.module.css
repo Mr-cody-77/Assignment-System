@@ -1,0 +1,57 @@
+.blob1, .blob2 {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+.blob1 {
+  width: 500px; height: 500px;
+  background: rgba(99,102,241,0.18);
+  top: -150px; left: -150px;
+  animation: floatBlob 10s ease-in-out infinite;
+}
+.blob2 {
+  width: 400px; height: 400px;
+  background: rgba(139,92,246,0.15);
+  bottom: -100px; right: -100px;
+  animation: floatBlob 12s ease-in-out infinite reverse;
+}
+@keyframes floatBlob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-30px); }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.passwordWrapper {
+  position: relative;
+}
+
+.showHideBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--clr-text-3);
+  font-size: 16px;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.submitBtn {
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

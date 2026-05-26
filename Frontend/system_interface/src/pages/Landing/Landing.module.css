@@ -1,0 +1,280 @@
+/* ── Navbar ────────────────────────────────── */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(10,14,26,0.88);
+  border-bottom: 1px solid rgba(99,120,200,0.18);
+  padding: 0 48px;
+  height: 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.navLogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.navLogoIcon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+}
+.navLogoText {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--clr-text);
+}
+.navActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ── Hero ──────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  padding: 80px 24px;
+}
+.heroBg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  animation: float 10s ease-in-out infinite;
+}
+.blob1 {
+  width: 600px; height: 600px;
+  background: rgba(99,102,241,0.25);
+  top: -100px; left: -150px;
+  animation-delay: 0s;
+}
+.blob2 {
+  width: 500px; height: 500px;
+  background: rgba(139,92,246,0.2);
+  top: 100px; right: -100px;
+  animation-delay: -4s;
+  animation-duration: 12s;
+}
+.blob3 {
+  width: 400px; height: 400px;
+  background: rgba(6,182,212,0.15);
+  bottom: -50px; left: 30%;
+  animation-delay: -7s;
+  animation-duration: 8s;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(-30px) scale(1.05); }
+}
+
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(99,120,200,0.03) 40px,
+      rgba(99,120,200,0.03) 41px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(99,120,200,0.03) 40px,
+      rgba(99,120,200,0.03) 41px
+    );
+  pointer-events: none;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  max-width: 820px;
+}
+.heroBadge {
+  display: inline-block;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 9999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: #818cf8;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+.heroTitle {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  color: var(--clr-text);
+}
+.gradientText {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.heroSubtitle {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--clr-text-2);
+  max-width: 600px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+}
+.heroActions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 60px;
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 40px;
+  border-top: 1px solid rgba(99,120,200,0.18);
+}
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--clr-text-2);
+}
+.statDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(99,120,200,0.25);
+}
+
+/* ── Features ──────────────────────────────── */
+.features {
+  padding: 80px 48px;
+  background: var(--clr-bg-2);
+}
+.sectionTitle {
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 8px;
+  color: var(--clr-text);
+}
+.sectionSubtitle {
+  text-align: center;
+  color: var(--clr-text-2);
+  margin-bottom: 52px;
+  font-size: 16px;
+}
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.featureCard {
+  background: rgba(26,35,64,0.6);
+  border: 1px solid rgba(99,120,200,0.18);
+  border-radius: 20px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+}
+.featureCard:hover {
+  transform: translateY(-6px);
+  border-color: rgba(99,102,241,0.4);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(99,102,241,0.1);
+}
+.featureIcon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+/* ── How It Works ──────────────────────────── */
+.howItWorks {
+  padding: 80px 48px;
+  background: var(--clr-bg);
+}
+.stepsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 900px;
+  margin: 52px auto 0;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.step {
+  text-align: center;
+  flex: 1;
+  min-width: 200px;
+  padding: 0 20px;
+}
+.stepNumber {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.3);
+}
+.stepArrow {
+  font-size: 28px;
+  color: var(--clr-accent-light);
+  align-self: center;
+  opacity: 0.6;
+}
+
+/* ── Footer ────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--clr-bg-2);
+  border-top: 1px solid rgba(99,120,200,0.18);
+  color: var(--clr-text-3);
+  font-size: 14px;
+}
+
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 768px) {
+  .navbar { padding: 0 20px; }
+  .navLogoText { display: none; }
+  .features, .howItWorks { padding: 60px 20px; }
+  .stepArrow { display: none; }
+  .statsRow { gap: 16px; }
+  .statDivider { display: none; }
+}

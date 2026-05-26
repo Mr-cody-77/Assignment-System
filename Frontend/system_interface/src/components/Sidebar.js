@@ -1,0 +1,80 @@
+import React from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout, selectUser, selectIsTeacher } from '../store/authSlice';
+
+const STUDENT_NAV = [
+  { to: '/student', label: 'Dashboard', icon: '⊞', end: true },
+  { to: '/student/assignments', label: 'Assignments', icon: '📚' },
+  { to: '/student/history', label: 'My Submissions', icon: '📋' },
+];
+
+const TEACHER_NAV = [
+  { to: '/teacher', label: 'Dashboard', icon: '⊞', end: true },
+  { to: '/teacher/assignments', label: 'Assignments', icon: '📚' },
+  { to: '/teacher/submissions', label: 'Submissions', icon: '📋' },
+  { to: '/teacher/analytics', label: 'Analytics', icon: '📊' },
+  { to: '/teacher/nodes', label: 'Node Monitor', icon: '🖥' },
+];
+
+export default function Sidebar() {
+  const user = useSelector(selectUser);
+  const isTeacher = useSelector(selectIsTeacher);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const nav = isTeacher ? TEACHER_NAV : STUDENT_NAV;
+
+  const handleLogout = () => { dispatch(logout()); navigate('/login'); };
+
+  const initials = user
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.username?.[0]?.toUpperCase()
+    : '?';
+
+  return (
+    <aside className="sidebar">
+      {/* Brand */}
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-logo">⚡</div>
+        <div>
+          <div className="sidebar-brand-name">CodeLab</div>
+          <div className="sidebar-brand-sub">Assignment System</div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="sidebar-nav">
+        <div className="nav-section-label">Menu</div>
+        {nav.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* User Footer */}
+      <div className="sidebar-footer">
+        <div className="user-card">
+          <div className="user-avatar">{initials}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="user-name truncate">{user?.first_name || user?.username}</div>
+            <div className="user-role">{user?.role} {user?.roll_number ? `• ${user.roll_number}` : ''}</div>
+          </div>
+        </div>
+        <button
+          id="btn-logout"
+          className="btn btn-ghost w-full btn-sm"
+          style={{marginTop:8}}
+          onClick={handleLogout}
+        >
+          🚪 Sign Out
+        </button>
+      </div>
+    </aside>
+  );
+}

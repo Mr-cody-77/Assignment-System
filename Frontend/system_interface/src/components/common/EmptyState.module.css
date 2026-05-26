@@ -1,0 +1,39 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  border: 1.5px dashed var(--clr-border-hover);
+  border-radius: var(--r-lg);
+  background: var(--clr-surface);
+}
+
+.iconWrapper {
+  margin-bottom: 16px;
+}
+
+.icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--clr-text);
+  margin: 0 0 8px 0;
+}
+
+.description {
+  font-size: 14px;
+  color: var(--clr-text-2);
+  margin: 0 0 24px 0;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.action {
+  margin-top: 8px;
+}

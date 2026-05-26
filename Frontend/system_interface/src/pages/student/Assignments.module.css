@@ -1,0 +1,8 @@
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.toolbarLeft { display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap; }
+.toolbarRight { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.liveIndicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--clr-success); font-weight: 600; }
+.liveDot { width: 8px; height: 8px; border-radius: 50%; background: var(--clr-success); animation: pulseLive 2s ease-in-out infinite; }
+@keyframes pulseLive { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.lastUpdated { font-size: 12px; color: var(--clr-text-3); }
+.assignmentsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }

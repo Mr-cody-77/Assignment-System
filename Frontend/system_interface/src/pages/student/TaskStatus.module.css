@@ -1,0 +1,20 @@
+.liveBar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 13px; }
+.liveDot { width: 8px; height: 8px; border-radius: 50%; background: var(--clr-success); animation: pulseLive 2s ease-in-out infinite; }
+@keyframes pulseLive { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.refreshTime { color: var(--clr-text-3); font-size: 12px; }
+.summaryBadges { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.filterTabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+.filterTab {
+  padding: 6px 16px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--clr-border);
+  background: var(--clr-surface);
+  color: var(--clr-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--tr-fast);
+}
+.filterTab:hover { border-color: var(--clr-accent); color: var(--clr-text); }
+.filterTab.active { background: var(--clr-accent); border-color: var(--clr-accent); color: #fff; font-weight: 700; }
+.tasksGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }

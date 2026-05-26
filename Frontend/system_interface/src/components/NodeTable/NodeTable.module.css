@@ -1,0 +1,21 @@
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortableHeader:hover { color: var(--clr-accent-light); }
+.sortIcon { opacity: 0.7; font-size: 11px; }
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--clr-text-2);
+}
+.refreshBtn { flex-shrink: 0; }

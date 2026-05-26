@@ -1,0 +1,3 @@
+.summaryGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.filterBar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+.filterSelect { max-width: 200px; flex-shrink: 0; }

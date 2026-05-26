@@ -1,0 +1,27 @@
+.roleSelector { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; max-width: 600px; }
+.roleCard {
+  background: var(--clr-surface);
+  border: 2px solid var(--clr-border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  cursor: pointer;
+  text-align: center;
+  transition: var(--tr-normal);
+}
+.roleCard:hover { border-color: rgba(99,102,241,0.5); }
+.roleCard.selected { border-color: var(--clr-accent); background: var(--clr-accent-glow); }
+.roleCard:focus { outline: 2px solid var(--clr-accent); }
+.roleIcon { font-size: 40px; margin-bottom: 12px; }
+.roleLabel { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.roleDesc { font-size: 13px; color: var(--clr-text-2); line-height: 1.5; }
+.formCard { padding: 28px; max-width: 520px; }
+.credentialsBox {
+  background: var(--clr-bg-3);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 2;
+}
+@media (max-width: 500px) { .roleSelector { grid-template-columns: 1fr; } }

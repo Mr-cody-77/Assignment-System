@@ -1,0 +1,12 @@
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.scoreHigh { color: var(--clr-success); font-weight: 700; }
+.scoreMid  { color: var(--clr-warning); font-weight: 700; }
+.scoreLow  { color: var(--clr-error); font-weight: 700; }
+.exportBtn { flex-shrink: 0; }
