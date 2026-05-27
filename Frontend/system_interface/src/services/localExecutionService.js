@@ -1,4 +1,4 @@
-import { centralRequest } from './api'; 
+import { backendRequest } from './api'; 
 
 const DEFAULT_TIME_LIMIT_MS = 2000;
 
@@ -14,7 +14,7 @@ export const runVisibleTestCases = async ({
 
   try {
     // Calling the new Django endpoint
-    const response = await centralRequest.post('/api/local-run/', { // Note: ensure this path matches your Django urls
+    const response = await backendRequest.post('/api/local-run/', { // Note: ensure this path matches your Django urls
       language: language?.toLowerCase(),
       code: code,
       time_limit_ms: timeLimitMs,
