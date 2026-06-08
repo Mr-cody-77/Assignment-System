@@ -1,103 +1,388 @@
 # ⚡ Distributed Assignment & Code Execution System
 
-A highly scalable, zero-configuration distributed computing platform designed for local area networks (LAN). 
-
-This system allows a centralized database to distribute coding assignments to students, while seamlessly offloading the heavy lifting of code compilation and execution to a decentralized, self-discovering mesh network of worker nodes.
-
----
+A highly scalable, zero-configuration distributed computing platform for Local Area Networks (LAN).  
+The system distributes coding assignments to students while offloading code compilation and execution to a self-discovering mesh network of worker nodes — with built-in plagiarism detection.
 
 ---
 
-## ⚙️ 2. Complete Setup Guide (From Scratch)
+## Table of Contents
 
-### Prerequisites
-* **Python 3.8+**
-* **Node.js 18+** & **npm**
-* **Native Compilers:** (e.g., Java JDK, GCC/G++, Python) installed and added to the system `PATH`.
-* **Network:** All participating machines must be connected to the **same Local Area Network (LAN/Wi-Fi)**.
+1. [Architecture Overview](#1-architecture-overview)
+2. [Prerequisites](#2-prerequisites)
+3. [Project Structure](#3-project-structure)
+4. [Setup Guide](#4-setup-guide)
+5. [Running the System](#5-running-the-system)
+6. [Environment Variables](#6-environment-variables)
+7. [Service Discovery (Zeroconf / mDNS)](#7-service-discovery-zeroconf--mdns)
+8. [Code Execution & Judging Pipeline](#8-code-execution--judging-pipeline)
+9. [Plagiarism Detection System](#9-plagiarism-detection-system)
+10. [API Reference](#10-api-reference)
 
-### Step 1: Clone and Structure
-Ensure your project directories are structured correctly:
+---
 
-# Python Backend Setup (Virtual Environment)
+## 1. Architecture Overview
 
-## Navigate to the root directory
+The platform is composed of three distinct service roles:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        LOCAL AREA NETWORK                       │
+│                                                                 │
+│  ┌──────────────────────┐      ┌────────────────────────────┐   │
+│  │  Centralized DB      │      │  Gateway Node (Backend)    │   │
+│  │  (Django + PgSQL)    │◄─────│  (Django + React)          │   │
+│  │  Port: 8000          │      │  Ports: 8001 / 3000        │   │
+│  │                      │      │                            │   │
+│  │  • Auth (JWT)        │      │  • Task Queue              │   │
+│  │  • Questions         │      │  • Load Balancer (P2C)     │   │
+│  │  • Results           │      │  • Code Editor (React)     │   │
+│  │  • Plagiarism Data   │      │  • Node Discovery          │   │
+│  └──────────────────────┘      └────────────────────────────┘   │
+│                                        ▲     ▼                  │
+│                          ┌─────────────┘     └──────────────┐   │
+│                          │                                   │   │
+│               ┌──────────┴───────┐             ┌────────────┴─┐ │
+│               │  Worker Node     │             │  Worker Node  │ │
+│               │  Port: 8002      │             │  Port: 8003   │ │
+│               │                  │             │               │ │
+│               │  • Code Exec     │             │  • Code Exec  │ │
+│               │  • I/O Judging   │             │  • I/O Judge  │ │
+│               └──────────────────┘             └───────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### A. Centralized Database Server
+- **Technology:** Django 4.2 + PostgreSQL
+- **Default Port:** `8000`
+- **Responsibilities:** Single source of truth for all persistent data — user authentication (JWT), assignment questions, student results, and plagiarism detection records.
+- **Design Constraint:** Never executes student code to prevent server bottlenecks.
+
+### B. Gateway Node + Frontend
+- **Technology:** Django 4.2 (Backend Node) + React 18 (Frontend)
+- **Default Ports:** `8001` (API) / `3000` (React Dev Server)
+- **Responsibilities:** Accepts student submissions, runs a Power-of-Two-Choices load balancer across discovered worker nodes, and dispatches tasks via a 2-phase token admission protocol. The React UI provides the coding interface, dashboards, and real-time node telemetry.
+
+### C. Headless Worker Nodes
+- **Technology:** Django 4.2
+- **Default Ports:** `8002`, `8003`, … (dynamically assigned)
+- **Responsibilities:** Receive code payloads, compile using native system compilers, execute against test cases in an isolated subprocess, and push results back to the Gateway Node.
+
+---
+
+## 2. Prerequisites
+
+| Requirement | Version | Notes |
+|---|---|---|
+| Python | 3.8+ | All backend services |
+| Node.js | 18+ | React frontend only |
+| npm | 9+ | React frontend only |
+| PostgreSQL | 13+ | Centralized DB only |
+| GCC / G++ | Any | For C/C++ compilation on worker nodes |
+| Java JDK | 11+ | For Java compilation on worker nodes |
+| Python | 3.8+ | For Python execution on worker nodes |
+| Network | — | All machines on the same LAN / Wi-Fi |
+
+---
+
+## 3. Project Structure
+
+```
+Assignment_System/
+├── cli.py                          # Unified orchestrator — start all services from here
+├── requiremnts.txt                 # Python package dependencies
+│
+├── Centralized_Database/           # Django project (PostgreSQL backend)
+│   ├── .env                        # Database credentials + plagiarism threshold
+│   ├── manage.py
+│   ├── Centralized_Database/       # Django settings, root URLs
+│   ├── users/                      # Auth app (JWT login, student/teacher creation)
+│   ├── questions/                  # Questions & test cases app
+│   └── results/                    # Results + plagiarism detection app
+│       ├── models.py               # Result, SubmittedSolution, SolutionFingerprint, PlagiarismDetected
+│       ├── plagiarism_engine.py    # Tokeniser + fingerprint + Jaccard similarity
+│       ├── views.py                # All result + plagiarism API views
+│       ├── serializers.py
+│       ├── urls.py
+│       └── migrations/
+│
+├── Backend/
+│   └── System_Management/          # Django project (Gateway + Worker node)
+│       ├── manage.py
+│       ├── System_Management/      # Django settings, root URLs
+│       ├── api_management/         # REST API layer
+│       │   ├── views.py            # All node API views
+│       │   ├── urls.py
+│       │   └── services/
+│       │       ├── task_dispatch_service.py
+│       │       ├── handle_local_run.py
+│       │       ├── node_info.py
+│       │       └── plagiarism_pipeline.py  # Async plagiarism trigger (new)
+│       └── Services/
+│           ├── Sender_Server/      # Load balancer, task queue, node discovery
+│           └── Receiver_Server/    # Worker pool, code executor, result pusher
+│
+└── Frontend/
+    └── system_interface/           # React 18 application
+        └── src/
+            ├── services/           # Axios clients (api.js, resultService.js, plagiarismService.js)
+            ├── config/             # Endpoint resolver + runtime config
+            ├── pages/
+            │   ├── teacher/        # Teacher dashboards
+            │   └── student/        # Student dashboards
+            └── components/         # Shared UI components (ResultTable, Sidebar, etc.)
+```
+
+---
+
+## 4. Setup Guide
+
+### Step 1 — Clone & Create Virtual Environment
+
+```bash
+# Navigate to project root
 cd Assignment_System
 
-## Create the virtual environment
+# Create virtual environment
 python -m venv venv
 
-## Activate it
-### Windows:
+# Activate — Windows
 venv\Scripts\activate
-### Mac/Linux:
+
+# Activate — macOS / Linux
 source venv/bin/activate
+```
 
-## Install required Python packages
-pip install django djangorestframework django-cors-headers zeroconf
+### Step 2 — Install Python Dependencies
 
-# Operating the Cluster (cli.py Orchestrator)
+```bash
+pip install django djangorestframework djangorestframework-simplejwt \
+            django-cors-headers zeroconf psutil psycopg2-binary \
+            python-dotenv requests
+```
 
-## to run the database server at port
-python cli.py --db_server --port 8000
+### Step 3 — Configure the Centralized Database
 
-## To run the Assignment System 
-python cli.py --assignment --port {port}
+Edit `Centralized_Database/.env`:
 
-port = 8000 (Default)
-port = 8001 or others (if database server and assignment system is running on single machine)
+```env
+DB_NAME=assignment_system
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
 
-## For Debugging 
+# Plagiarism detection threshold (0.0 – 1.0). Default: 0.75
+PLAGIARISM_THRESHOLD=0.75
+```
 
-### Adding Compute Power (Peer Machines)
-python cli.py --worker_only --port 8002
- 
+### Step 4 — Run Database Migrations
+
+```bash
+cd Centralized_Database
+python manage.py migrate
+python manage.py createsuperuser   # Create the first teacher account
+cd ..
+```
+
+### Step 5 — Install Frontend Dependencies
+
+```bash
+cd Frontend/system_interface
+npm install
+cd ../..
+```
+
 ---
 
-## 1. Advanced Architecture Deep-Dive
+## 5. Running the System
 
-This platform abandons the traditional "monolithic server" approach. Instead, it utilizes a microservice architecture divided into three distinct roles.
+All services are launched via the root-level `cli.py` orchestrator.
 
-### A. Centralized Database Server (Django)
-* **The Source of Truth.**
-* **Port:** `8000` (Default)
-* **Responsibilities:** Handles all persistent data. It manages user authentication (Students/Teachers), stores assignment questions, and records the final submitted results.
-* **Network Role:** It broadcasts its existence to the LAN using mDNS. It **strictly does not** execute student code to prevent server bottlenecks or security breaches.
+### Production-like setup (3 separate machines or terminal windows)
 
-### B. The "Gateway" Node + Frontend (Django + React)
-* **The User Interface & Bridge.**
-* **Port:** `8001` (Backend Node) & `3000` (React App)
-* **Responsibilities:** The React frontend provides the dashboard and code editor. It talks to the Central DB for logins and assignments, but routes all heavy code-execution requests to its local "Gateway" node (Port 8001). 
-* **Network Role:** The Gateway node polls the network for other active worker nodes and feeds this real-time telemetry (CPU/Memory load) back to the React UI.
+```bash
+# Terminal 1 — Centralized Database Server
+python cli.py --db_server --port 8000
 
-### C. Headless Worker Nodes (Django)
-* **The Compute Engines.**
-* **Port:** `8002`, `8003`, etc. (Dynamically assigned)
-* **Responsibilities:** These are silent, background processes running on peer computers across the LAN. They receive raw code, securely compile it, execute it against test cases (Judging), and return the output.
-* **Network Role:** They dynamically discover the Central DB and other peer nodes. They continuously broadcast their current hardware load to the network.
+# Terminal 2 — Gateway Node + React Frontend (main machine)
+python cli.py --assignment --port 8001
 
-### Zeroconf Discovery
+# Terminal 3+ — Additional headless worker nodes (any LAN machine)
+python cli.py --worker_only --port 8002
+```
 
-This system requires zero hardcoded IP addresses. It achieves this using mDNS (Multicast DNS via the zeroconf Python library).
+### Single-machine development setup
 
-* **DB Broadcast:** The Central DB shouts across the router: "I am _assignsysdb._tcp.local., at Port 8000!"
+```bash
+# Window 1 — Database
+python cli.py --db_server --port 8000
 
-* **Node Generation:** A Worker Node starts and generates a unique ID (e.g., Node-5599c493). It shouts: "I am a Compute Node, here is my IP and Port!"
+# Window 2 — Assignment node (different port since DB is on 8000)
+python cli.py --assignment --port 8001
 
-* **The Handshake:** The Node hears the DB's broadcast and saves its IP. The DB ignores its own broadcast but listens for Nodes.
+# React starts automatically on port 3000
+```
 
-* **Dynamic Frontend Routing:** React asks its Gateway Node (8001) for the network map (/api/node_info/). The Gateway packages its own identity, the DB's identity, and all discovered peer nodes, handing this JSON payload to React. React uses this payload to dynamically route Axios requests without needing a .env file.
+### CLI Options
 
-### Code Execution & Judging Methodology
+| Flag | Default | Description |
+|---|---|---|
+| `--db_server` | — | Start only the Centralized Database server |
+| `--assignment` | — | Start the Backend Node + React frontend |
+| `--worker_only` | — | Start only a headless worker node |
+| `--port <n>` | `8000` | Port for the service being started |
 
-When a student clicks "Submit Task", the execution completely bypasses the Central DB to prevent bottlenecks.
+---
 
-* **Direct Dispatch:** React sends the raw source code string directly to the local Gateway Node (/api/task/).
+## 6. Environment Variables
 
-* **Sandboxing:** The Node temporarily writes the code to an isolated file on its local disk (e.g., Main.java or script.py).
+### Centralized Database (`Centralized_Database/.env`)
 
-* **Subprocess Compilation:** The Node uses Python's subprocess.Popen to invoke the host machine's native compilers.
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DB_NAME` | ✅ | — | PostgreSQL database name |
+| `DB_USER` | ✅ | — | PostgreSQL username |
+| `DB_PASSWORD` | ✅ | — | PostgreSQL password |
+| `DB_HOST` | ✅ | — | PostgreSQL host address |
+| `DB_PORT` | ✅ | `5432` | PostgreSQL port |
+| `PLAGIARISM_THRESHOLD` | ❌ | `0.75` | Jaccard similarity cutoff for plagiarism flagging (0.0–1.0) |
 
-* **I/O Judging:** The subprocess is fed predefined standard input (test cases). Its stdout (standard output) is captured and strictly compared against the expected output string.
+### Backend Node (injected by `cli.py` at runtime)
 
-* **Score Routing:** The Node forwards the final ACCEPTED or WRONG ANSWER result securely to the Central DB to be saved to the student's permanent record.
+| Variable | Default | Description |
+|---|---|---|
+| `NODE_PORT` | `8000` | The port this node listens on |
+
+---
+
+## 7. Service Discovery (Zeroconf / mDNS)
+
+The system requires **zero hardcoded IP addresses**. All service discovery is powered by mDNS broadcasts on the local network.
+
+| Service | mDNS Name | Broadcast By |
+|---|---|---|
+| Centralized Database | `_assignsysdb._tcp.local.` | DB Server at startup |
+| Worker Nodes | `_assignsysnode._tcp.local.` | Each node at startup |
+
+**Discovery flow:**
+1. The Central DB broadcasts: *"I am `_assignsysdb._tcp.local.` at `<IP>:8000`"*
+2. Worker nodes join the LAN and discover the DB broadcast — saving the DB IP.
+3. Worker nodes also broadcast their own identity + port.
+4. The Gateway Node's React frontend calls `/api/node_info/` to get a live network map (DB IP, own IP, all peer node IPs) and dynamically routes all Axios requests without any `.env` configuration.
+
+---
+
+## 8. Code Execution & Judging Pipeline
+
+When a student clicks **Submit**:
+
+```
+Student (React)
+    │
+    ▼
+POST /api/task/  ─────────────────────────────── Backend Node (Gateway)
+    │                                                    │
+    │  ① submit_task() creates a task + queues it        │
+    │                                                    │
+    │  ② Power-of-Two-Choices load balancer picks        │
+    │     the least-loaded peer node                     │
+    │                                                    │
+    │  ③ Phase 1 — Token Request                         │
+    │     POST /api/task_token/ ──► Peer Node            │
+    │     ◄── { "status": "accept", "token": "uuid" }    │
+    │                                                    │
+    │  ④ Phase 2 — Full Task Dispatch                    │
+    │     POST /api/accepted_task/ ──► Peer Node         │
+    │     (code + test cases + token)                    │
+    │                                                    │
+    │  ⑤ Peer Node compiles + executes code              │
+    │     in an isolated subprocess                      │
+    │                                                    │
+    │  ⑥ Result pushed back to Gateway                   │
+    │     POST /api/task_result/                         │
+    │                                                    │
+    │  ⑦ Gateway forwards result to Central DB           │
+    │     POST /api/results/push_result/                 │
+    │                                                    │
+    ▼
+Student dashboard polls /api/results/result/ for final verdict
+```
+
+**Supported Languages:**
+
+| Language | Compiler / Runtime | File |
+|---|---|---|
+| Python | System Python interpreter | `solution.py` |
+| C++ | `g++ -O2 -std=c++17` | `solution.cpp` |
+| Java | `javac` / `java` | `Main.java` |
+| JavaScript | Node.js | `solution.js` |
+| C | `gcc -O2` | `solution.c` |
+
+---
+
+## 9. Plagiarism Detection System
+
+The plagiarism detection system is **fully isolated** from the grading pipeline. It runs as an asynchronous background job and does not affect submission latency.
+
+### How It Works
+
+```
+Student clicks Submit
+    │
+    ├──► [Existing Pipeline] submit_task() → distributed grading (unchanged)
+    │
+    └──► [New, Async] daemon thread fires AFTER submit_task() returns
+              │
+              ▼
+         POST /api/results/plagiarism/ingest/   (Central DB)
+              │
+              ▼  Fingerprinting (plagiarism_engine.py)
+         ① Tokenise code by language:
+            • Python  → Python `tokenize` module (AST-accurate)
+            • C++     → Regex lexer (keywords, identifiers, operators)
+            • Java    → Regex lexer (keywords, identifiers, operators)
+              │
+         ② Normalise: collapse string/number literals → __STR__ / __NUM__
+              │
+         ③ Build 5-grams over token sequence
+              │
+         ④ Hash each 5-gram with SHA-256 (truncated to 8 bytes)
+              │
+         ⑤ Store raw code → submitted_solutions table
+            Store fingerprint → solution_fingerprints table
+              │
+         ⑥ Fetch all other fingerprints for same question
+              │
+         ⑦ Jaccard( A, B ) = |A ∩ B| / |A ∪ B|
+              │
+         ⑧ score ≥ PLAGIARISM_THRESHOLD?
+            YES → insert row into plagiarism_detected table
+```
+
+### Threshold Configuration
+
+The similarity threshold is read from `PLAGIARISM_THRESHOLD` in the Central DB `.env` file. **No code redeploy needed** — changing the value takes effect on the next ingest request.
+
+```
+# Conservative (catches only obvious copies)
+PLAGIARISM_THRESHOLD=0.85
+
+# Recommended default
+PLAGIARISM_THRESHOLD=0.75
+
+# Aggressive (may produce false positives on boilerplate-heavy problems)
+PLAGIARISM_THRESHOLD=0.60
+```
+
+### Dashboard Visibility Rules
+
+| Dashboard | Plagiarism Column Shows |
+|---|---|
+| **Teacher** | `⚠️ Plagiarism detected with <roll_number>` |
+| **Student** | `⚠️ Plagiarism detected` (other student hidden) |
+
+---
+
+## 10. API Reference
+
+See [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md) for the complete, structured reference of all API endpoints including request formats, response schemas, authentication requirements, and error codes.
