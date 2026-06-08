@@ -1,7 +1,13 @@
+import threading
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import uuid
+
+# ── PLAGIARISM DETECTION — isolated import (new, additive only) ───────────────
+from api_management.services.plagiarism_pipeline import trigger_plagiarism_pipeline
+# ─────────────────────────────────────────────────────────────────────────────
 
 from api_management.services.task_dispatch_service import submit_task
 from Services.Sender_Server.state import tasks, lock
@@ -28,6 +34,32 @@ class TaskSubmissionView(APIView):
                 language=data["language"],
                 solution=data["solution"],
             )
+
+            # ── PLAGIARISM DETECTION — async background job (new, isolated) ──
+            # Fires AFTER submit_task() returns. The existing distributed
+            # pipeline is completely unaffected. daemon=True ensures this
+            # thread never blocks node shutdown.
+            try:
+                question_obj = data.get("question", {})
+                q_id = (
+                    question_obj.get("id", "")
+                    if isinstance(question_obj, dict)
+                    else str(question_obj)
+                )
+                threading.Thread(
+                    target=trigger_plagiarism_pipeline,
+                    args=(
+                        data["roll_number"],
+                        str(q_id),
+                        data["language"],
+                        data["solution"],
+                    ),
+                    daemon=True,
+                ).start()
+            except Exception:
+                # Never let plagiarism logic affect the main response
+                pass
+            # ─────────────────────────────────────────────────────────────────
 
             return Response(
                 result,

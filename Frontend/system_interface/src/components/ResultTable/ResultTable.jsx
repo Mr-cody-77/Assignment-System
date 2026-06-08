@@ -16,7 +16,7 @@ import styles from './ResultTable.module.css';
 
 const PAGE_SIZE = 15;
 
-const ResultTable = ({ results = [], loading = false, showStudent = false }) => {
+const ResultTable = ({ results = [], loading = false, showStudent = false, plagiarismMap = {} }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState('submitted_at');
@@ -113,6 +113,8 @@ const ResultTable = ({ results = [], loading = false, showStudent = false }) => 
                   <th onClick={() => handleSort('submitted_at')} style={{ cursor: 'pointer' }}>
                     Submitted <SortBtn col="submitted_at" />
                   </th>
+                  {/* Plagiarism column — new, isolated */}
+                  <th>Plagiarism</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,6 +141,40 @@ const ResultTable = ({ results = [], loading = false, showStudent = false }) => 
                     <td>{formatDuration(r.execution_time)}</td>
                     <td style={{ fontSize: 12, color: 'var(--clr-text-2)' }}>
                       {formatDate(r.submitted_at)}
+                    </td>
+                    {/* Plagiarism cell — new, isolated */}
+                    <td>
+                      {(() => {
+                        const rollForKey = showStudent
+                          ? (r.roll_number)
+                          : (r.roll_number);
+                        const flagKey = `${rollForKey}:${r.question_id}`;
+                        const flag = plagiarismMap[flagKey];
+                        if (!flag) return <span style={{ color: 'var(--clr-text-3)', fontSize: 12 }}>—</span>;
+                        return (
+                          <span
+                            title={`Similarity: ${(flag.similarity_score * 100).toFixed(1)}%`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              background: 'rgba(251,191,36,0.15)',
+                              border: '1px solid rgba(251,191,36,0.5)',
+                              color: '#f59e0b',
+                              borderRadius: 6,
+                              padding: '2px 8px',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            ⚠️
+                            {showStudent && flag.copied_from_student_roll
+                              ? ` Plagiarism detected with ${flag.copied_from_student_roll}`
+                              : ' Plagiarism detected'}
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

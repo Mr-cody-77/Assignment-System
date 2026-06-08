@@ -7,12 +7,19 @@ import StatCard from '../../components/common/StatCard';
 import usePolling from '../../hooks/usePolling';
 import { getMyResults } from '../../services/resultService';
 import { averageScorePercent, formatScore, normalizeScorePercent } from '../../utils/formatters';
+// ── PLAGIARISM DETECTION — new isolated imports ───────────────────────────────
+import { getStudentPlagiarismFlags, buildPlagiarismMap } from '../../services/plagiarismService';
+// ─────────────────────────────────────────────────────────────────────────────
 
 const Results = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ── PLAGIARISM DETECTION — new isolated state ───────────────────────────────
+  const [plagiarismMap, setPlagiarismMap] = useState({});
+  // ──────────────────────────────────────────────────────────────────
 
   const fetchResults = useCallback(async () => {
     if (!user?.username) return;
@@ -27,6 +34,20 @@ const Results = () => {
   }, [user]);
 
   usePolling(fetchResults, 15000, true);
+
+  // ── PLAGIARISM DETECTION — separate polling, independent of results poll ─────
+  const fetchPlagiarismFlags = useCallback(async () => {
+    if (!user?.username) return;
+    try {
+      const flags = await getStudentPlagiarismFlags();
+      setPlagiarismMap(buildPlagiarismMap(flags));
+    } catch {
+      // Silently ignore — plagiarism UI is non-critical
+    }
+  }, [user]);
+
+  usePolling(fetchPlagiarismFlags, 60000, true);
+  // ─────────────────────────────────────────────────────────────────
 
   const accepted = results.filter((r) =>
     ['accepted', 'completed'].includes(r.status?.toLowerCase())
@@ -55,7 +76,7 @@ const Results = () => {
           </div>
 
           {/* Results table */}
-          <ResultTable results={results} loading={loading} showStudent={false} />
+          <ResultTable results={results} loading={loading} showStudent={false} plagiarismMap={plagiarismMap} />
         </div>
       </div>
     </div>

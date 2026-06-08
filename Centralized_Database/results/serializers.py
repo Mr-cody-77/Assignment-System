@@ -38,3 +38,59 @@ class ResultSerializer(serializers.ModelSerializer):
             'status',
             'submitted_at',
         ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PLAGIARISM DETECTION — New serializers (no existing serializer is changed)
+# ─────────────────────────────────────────────────────────────────────────────
+
+from .models import SubmittedSolution, SolutionFingerprint, PlagiarismDetected
+
+
+class SolutionIngestSerializer(serializers.Serializer):
+    """Validates the payload sent by the Backend Node's async pipeline."""
+    roll_number = serializers.CharField()
+    question_id = serializers.CharField()
+    language = serializers.CharField()
+    code = serializers.CharField()
+
+
+class PlagiarismDetectedTeacherSerializer(serializers.ModelSerializer):
+    """
+    For the teacher dashboard — exposes both student roll numbers
+    and the similarity score.
+    """
+    flagged_student_roll = serializers.CharField(
+        source='flagged_student_id.roll_number'
+    )
+
+    class Meta:
+        model = PlagiarismDetected
+        fields = [
+            'id',
+            'flagged_student_roll',
+            'copied_from_student_roll',
+            'question_id',
+            'similarity_score',
+            'detected_at',
+        ]
+
+
+class PlagiarismDetectedStudentSerializer(serializers.ModelSerializer):
+    """
+    For the student dashboard — deliberately omits copied_from_student_roll
+    so the student cannot identify who they matched.
+    """
+    flagged_student_roll = serializers.CharField(
+        source='flagged_student_id.roll_number'
+    )
+
+    class Meta:
+        model = PlagiarismDetected
+        fields = [
+            'id',
+            'flagged_student_roll',
+            'question_id',
+            'similarity_score',
+            'detected_at',
+        ]

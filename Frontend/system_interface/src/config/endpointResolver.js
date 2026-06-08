@@ -38,4 +38,9 @@ export const endpoints = {
 
   nodeInfo: () =>
     `${runtimeConfig.getBackendURL()}/api/node_info/`,
+
+  // ── Plagiarism Detection (Central Server) — new, isolated ─
+  plagiarismTeacher: () => `${central()}/api/results/plagiarism/teacher/`,
+  plagiarismStudent: () => `${central()}/api/results/plagiarism/student/`,
 };
+

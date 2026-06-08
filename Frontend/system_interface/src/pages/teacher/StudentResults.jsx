@@ -10,6 +10,9 @@ import { getResults } from '../../services/resultService';
 import { exportToCSV, filterData } from '../../utils/helpers';
 import { averageScorePercent, formatScore } from '../../utils/formatters';
 import styles from './StudentResults.module.css';
+// ── PLAGIARISM DETECTION — new isolated imports ───────────────────────────────
+import { getTeacherPlagiarismFlags, buildPlagiarismMap } from '../../services/plagiarismService';
+// ─────────────────────────────────────────────────────────────────────────────
 
 const StudentResults = () => {
   const { user } = useAuth();
@@ -19,6 +22,10 @@ const StudentResults = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // ── PLAGIARISM DETECTION — new isolated state (does not touch existing state) ──
+  const [plagiarismMap, setPlagiarismMap] = useState({});
+  // ─────────────────────────────────────────────────────────────────
 
   const fetchResults = useCallback(async () => {
     try {
@@ -36,6 +43,23 @@ const StudentResults = () => {
     const interval = setInterval(fetchResults, 30000);
     return () => clearInterval(interval);
   }, [fetchResults]);
+
+  // ── PLAGIARISM DETECTION — separate fetch, independent of results fetch ────────
+  const fetchPlagiarismFlags = useCallback(async () => {
+    try {
+      const flags = await getTeacherPlagiarismFlags();
+      setPlagiarismMap(buildPlagiarismMap(flags));
+    } catch {
+      // Silently ignore — plagiarism UI is non-critical
+    }
+  }, []);
+
+  useEffect(() => { fetchPlagiarismFlags(); }, [fetchPlagiarismFlags]);
+  useEffect(() => {
+    const interval = setInterval(fetchPlagiarismFlags, 60000); // refresh every 60s
+    return () => clearInterval(interval);
+  }, [fetchPlagiarismFlags]);
+  // ─────────────────────────────────────────────────────────────────
 
   const filteredResults = filterData(
     statusFilter ? results.filter((r) => r.status?.toLowerCase() === statusFilter) : results,
@@ -97,7 +121,7 @@ const StudentResults = () => {
             </select>
           </div>
 
-          <ResultTable results={filteredResults} loading={loading} showStudent />
+          <ResultTable results={filteredResults} loading={loading} showStudent plagiarismMap={plagiarismMap} />
         </div>
       </div>
     </div>
