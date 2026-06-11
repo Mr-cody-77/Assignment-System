@@ -41,7 +41,7 @@ class ResultSerializer(serializers.ModelSerializer):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PLAGIARISM DETECTION — New serializers (no existing serializer is changed)
+# PLAGIARISM DETECTION
 # ─────────────────────────────────────────────────────────────────────────────
 
 from .models import SubmittedSolution, SolutionFingerprint, PlagiarismDetected
@@ -93,4 +93,4 @@ class PlagiarismDetectedStudentSerializer(serializers.ModelSerializer):
             'question_id',
             'similarity_score',
             'detected_at',
-        ]
+        ]

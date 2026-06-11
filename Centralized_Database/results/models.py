@@ -47,7 +47,7 @@ class Result(models.Model):
 
 
 # ─────────────────────────────────────────────────────────────────
-# PLAGIARISM DETECTION — New tables (no existing table is altered)
+# PLAGIARISM DETECTION
 # ─────────────────────────────────────────────────────────────────
 
 class SubmittedSolution(models.Model):

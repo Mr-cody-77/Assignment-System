@@ -25,6 +25,7 @@ import logging
 import os
 import re
 import tokenize as py_tokenize
+import keyword
 from typing import List, Set
 
 logger = logging.getLogger("plagiarism.engine")
@@ -98,8 +99,13 @@ def _tokenise_python(code: str) -> List[str]:
                 tokens.append("__STR__")
             elif tok_type == py_tokenize.NUMBER:
                 tokens.append("__NUM__")
+            elif tok_type == py_tokenize.NAME:
+                if keyword.iskeyword(tok_string):
+                    tokens.append(tok_string)
+                else:
+                    tokens.append("__ID__") 
             else:
-                tokens.append(tok_string)
+                tokens.append(tok_string)  
     except py_tokenize.TokenError:
         # Partial / malformed code — fall back to regex
         tokens = _tokenise_regex(code)
@@ -137,8 +143,14 @@ def _tokenise_regex(code: str, keywords: Set[str] = frozenset()) -> List[str]:
             tokens.append("__STR__")
         elif re.match(r'^[0-9]', tok):
             tokens.append("__NUM__")
+        elif re.match(r'^[A-Za-z_]\w*$', tok):
+            # Check if it is a C++ or Java keyword
+            if tok in keywords:
+                tokens.append(tok)       # Keep 'int', 'public', 'while', etc.
+            else:
+                tokens.append("__ID__")  # Mask user variable/function names
         else:
-            tokens.append(tok)
+            tokens.append(tok)           # Keep operators (+, -, =)
     return tokens
 
 
