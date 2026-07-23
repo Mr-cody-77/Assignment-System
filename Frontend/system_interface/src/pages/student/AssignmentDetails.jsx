@@ -14,7 +14,7 @@ import styles from './AssignmentDetails.module.css';
 
 const TEMPLATES = {
   python: '# Write your Python solution here\n\ndef solution():\n    pass\n',
-  cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your C++ solution here\n    return 0;\n}\n',
+  cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Read input from stdin (e.g., cin >> a >> b;)\n    // Write your C++ solution here\n    // Print output to stdout (e.g., cout << result << endl;)\n\n    return 0;\n}\n',
   java: 'public class Solution {\n    public static void main(String[] args) {\n        // Write your Java solution here\n    }\n}\n',
   javascript: '// Use readline() for stdin and console.log() for output\n\nfunction solution() {\n  const line = readline();\n  console.log(line);\n}\n',
 };
@@ -210,7 +210,6 @@ const AssignmentDetails = () => {
               ))}
             </div>
 
-            {/* Tab content */}
             {activeTab === 'description' && (
               <div>
                 <h2 className="problem-title">{question.title}</h2>
@@ -219,6 +218,22 @@ const AssignmentDetails = () => {
                     {question.description}
                   </pre>
                 </div>
+                {question.input_format && (
+                  <div className={styles.constraintsBox} style={{ marginBottom: 16 }}>
+                    <div className={styles.constraintsLabel}>Input Format</div>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--clr-text-2)', lineHeight: 1.6 }}>
+                      {question.input_format}
+                    </pre>
+                  </div>
+                )}
+                {question.output_format && (
+                  <div className={styles.constraintsBox} style={{ marginBottom: 16 }}>
+                    <div className={styles.constraintsLabel}>Output Format</div>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--clr-text-2)', lineHeight: 1.6 }}>
+                      {question.output_format}
+                    </pre>
+                  </div>
+                )}
                 {question.constraints && (
                   <div className={styles.constraintsBox}>
                     <div className={styles.constraintsLabel}>Constraints</div>

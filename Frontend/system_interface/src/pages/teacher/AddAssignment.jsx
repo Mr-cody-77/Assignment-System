@@ -18,6 +18,8 @@ const AddAssignment = () => {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [inputFormat, setInputFormat] = useState('');
+  const [outputFormat, setOutputFormat] = useState('');
   const [constraints, setConstraints] = useState('');
   const [examples, setExamples] = useState([emptyExample()]);
   const [testCases, setTestCases] = useState([emptyTestCase()]);
@@ -48,6 +50,8 @@ const AddAssignment = () => {
       await createAssignment({
         title: title.trim(),
         description: description.trim(),
+        input_format: inputFormat.trim(),
+        output_format: outputFormat.trim(),
         constraints: constraints.trim(),
         examples,
         test_cases: testCases.filter((tc) => tc.input.trim()),
@@ -55,7 +59,7 @@ const AddAssignment = () => {
       });
       addToast('Assignment created successfully!', 'success');
       // Reset
-      setTitle(''); setDescription(''); setConstraints('');
+      setTitle(''); setDescription(''); setInputFormat(''); setOutputFormat(''); setConstraints('');
       setExamples([emptyExample()]);
       setTestCases([emptyTestCase()]);
       setHiddenTestCases([emptyTestCase()]);
@@ -89,6 +93,18 @@ const AddAssignment = () => {
               <h2>{title || '(No title)'}</h2>
               <hr style={{ borderColor: 'var(--clr-border)', margin: '16px 0' }} />
               <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{description || '(No description)'}</p>
+              {inputFormat && (
+                <>
+                  <h3 style={{ marginTop: 20 }}>Input Format</h3>
+                  <p style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)' }}>{inputFormat}</p>
+                </>
+              )}
+              {outputFormat && (
+                <>
+                  <h3 style={{ marginTop: 20 }}>Output Format</h3>
+                  <p style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)' }}>{outputFormat}</p>
+                </>
+              )}
               {constraints && (
                 <>
                   <h3 style={{ marginTop: 20 }}>Constraints</h3>
@@ -136,6 +152,34 @@ const AddAssignment = () => {
                     placeholder="Describe the problem clearly…"
                     rows={8}
                     required
+                  />
+                </div>
+              </div>
+
+              {/* Input Format */}
+              <div className={`card ${styles.formSection}`}>
+                <h3 className={styles.sectionTitle}>Input Format</h3>
+                <div className="form-group">
+                  <textarea
+                    className="form-textarea"
+                    value={inputFormat}
+                    onChange={(e) => setInputFormat(e.target.value)}
+                    placeholder="Describe how the input is supplied (e.g. A single line containing two space-separated integers)…"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Output Format */}
+              <div className={`card ${styles.formSection}`}>
+                <h3 className={styles.sectionTitle}>Output Format</h3>
+                <div className="form-group">
+                  <textarea
+                    className="form-textarea"
+                    value={outputFormat}
+                    onChange={(e) => setOutputFormat(e.target.value)}
+                    placeholder="Describe how the output should be formatted (e.g. Print a single integer representing the sum)…"
+                    rows={3}
                   />
                 </div>
               </div>

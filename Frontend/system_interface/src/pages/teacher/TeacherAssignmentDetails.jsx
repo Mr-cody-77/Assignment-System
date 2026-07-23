@@ -98,6 +98,26 @@ const TeacherAssignmentDetails = () => {
             <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--clr-text-2)', lineHeight: 1.7 }}>
               {assignment.description}
             </pre>
+            {assignment.input_format && (
+              <>
+                <h3 style={{ fontSize: 15, fontWeight: 700, marginTop: 20, marginBottom: 8 }}>
+                  Input Format
+                </h3>
+                <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)', lineHeight: 1.7 }}>
+                  {assignment.input_format}
+                </pre>
+              </>
+            )}
+            {assignment.output_format && (
+              <>
+                <h3 style={{ fontSize: 15, fontWeight: 700, marginTop: 20, marginBottom: 8 }}>
+                  Output Format
+                </h3>
+                <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)', lineHeight: 1.7 }}>
+                  {assignment.output_format}
+                </pre>
+              </>
+            )}
             {assignment.constraints && (
               <>
                 <h3 style={{ fontSize: 15, fontWeight: 700, marginTop: 20, marginBottom: 8 }}>

@@ -6,6 +6,10 @@ class Question(models.Model):
 
     description = models.TextField()
 
+    input_format = models.TextField(blank=True, default="")
+
+    output_format = models.TextField(blank=True, default="")
+
     examples = models.JSONField(default=list)
 
     constraints = models.TextField()

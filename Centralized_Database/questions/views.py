@@ -31,6 +31,8 @@ class CreateQuestionView(APIView):
         question = Question.objects.create(
             title=data["title"],
             description=data["description"],
+            input_format=data.get("input_format", ""),
+            output_format=data.get("output_format", ""),
             examples=data.get("examples", []),
             constraints=data["constraints"]
         )
