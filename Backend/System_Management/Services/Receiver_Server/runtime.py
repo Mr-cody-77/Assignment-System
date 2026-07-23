@@ -12,7 +12,7 @@ import uuid
 
 def _get_local_ip() -> str:
     """Offline-safe LAN IP detection."""
-    for target in ('192.168.1.1', '192.168.0.1', '10.0.0.1', '172.16.0.1'):
+    for target in ('8.8.8.8', '192.168.1.1', '192.168.0.1', '10.0.0.1', '172.16.0.1'):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.settimeout(0.3)

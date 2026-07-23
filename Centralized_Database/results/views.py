@@ -86,7 +86,7 @@ def get_results(request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PLAGIARISM DETECTION — New views (existing views above are 100% untouched)
+# PLAGIARISM DETECTION
 # ─────────────────────────────────────────────────────────────────────────────
 
 import os

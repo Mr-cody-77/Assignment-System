@@ -5,8 +5,7 @@ from .models import (
     TestCase,
     HiddenTestCase
 )
-# IMPORT YOUR RESULT MODEL HERE
-from results.models import Result 
+from results.models import Result
 
 class TestCaseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,7 +36,6 @@ class QuestionSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    # --- 1. ADD THIS FIELD ---
     is_solved = serializers.SerializerMethodField()
 
     class Meta:
@@ -51,14 +49,14 @@ class QuestionSerializer(serializers.ModelSerializer):
             "test_cases",
             "hidden_test_cases",
             "created_at",
-            "is_solved"  # --- 2. ADD TO FIELDS ---
+            "is_solved"  
         )
 
-    # --- 3. ADD THIS FUNCTION ---
+
     def get_is_solved(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            # Check if the user has an 'accepted' result for this question
+
             return Result.objects.filter(
                 student=request.user, 
                 question_id=str(obj.id), 
@@ -70,7 +68,7 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
     test_cases = TestCaseSerializer(many=True)
     hidden_test_cases = HiddenTestCaseSerializer(many=True)
     
-    # --- 4. ADD TO DETAIL SERIALIZER AS WELL ---
+
     is_solved = serializers.SerializerMethodField()
 
     class Meta:
@@ -84,7 +82,7 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             "test_cases",
             "hidden_test_cases",
             "created_at",
-            "is_solved" # --- ADD TO FIELDS ---
+            "is_solved" 
         )
 
     def get_is_solved(self, obj):

@@ -19,6 +19,7 @@ def update_frontend_env(port):
     env_path = os.path.join(FRONTEND_DIR, '.env')
     print(f"🔧 Updating React frontend to point to Backend port: {port}")
     with open(env_path, 'w') as f:
+        f.write(f"REACT_APP_NODE_URL=http://localhost:{port}\n")
         f.write(f"REACT_APP_BACKEND_URL=http://localhost:{port}\n")
         f.write("PORT=3000\n") # You can change this if you want React on a different port
 

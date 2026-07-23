@@ -18,6 +18,7 @@ RE_ANNOUNCE_INTERVAL = 30  # <-- Added interval
 
 def get_local_ip():
     targets = [
+        "8.8.8.8",
         "192.168.1.1",
         "192.168.0.1",
         "10.0.0.1",
@@ -68,18 +69,20 @@ class DatabaseBroadcaster:
         logger.info(f"Database Server IP: {ip}")
 
         self.zc = Zeroconf()
+        env_port = os.environ.get("SERVER_PORT")
+        port = int(env_port) if env_port else SERVER_PORT
         print(
             "SERVER_PORT ENV =",
-            os.environ.get("SERVER_PORT")
+            env_port
         )
         self.info = ServiceInfo(
             SERVICE_TYPE,
             f"DatabaseServer_{unique_id}._assignsysdb._tcp.local.",
             addresses=[socket.inet_aton(ip)],
-            port=SERVER_PORT,
+            port=port,
             properties={
                 "role": "database",
-                "api_port": str(SERVER_PORT),
+                "api_port": str(port),
                 "version": "1.0"
             }
         )

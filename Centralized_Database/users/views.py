@@ -56,11 +56,6 @@ def login_view(request):
 
 @api_view(['POST'])
 def refresh_view(request):
-    if request.method != "POST":
-        return JsonResponse(
-            {"detail": "Method not allowed"},
-            status=405
-        )
 
     try:
         body = json.loads(request.body)

@@ -64,7 +64,6 @@ class QuestionListView(APIView):
     def get(self, request):
         questions = Question.objects.all()
 
-        # --- MODIFIED HERE: Added context={'request': request} ---
         serializer = QuestionSerializer(
             questions,
             many=True,
@@ -88,7 +87,7 @@ class QuestionDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # --- MODIFIED HERE: Used DetailSerializer and added context ---
+
         serializer = QuestionDetailSerializer(
             question,
             context={'request': request}
