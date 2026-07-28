@@ -46,8 +46,9 @@ const ResultTable = ({ results = [], loading = false, showStudent = false, plagi
   );
 
   const scoreClass = (score) => {
-    const v = normalizeScorePercent(score);
-    return v >= 80 ? styles.scoreHigh : v >= 50 ? styles.scoreMid : styles.scoreLow;
+    const v = Number(score);
+    if (isNaN(v) || v === 0) return styles.scoreLow;
+    return styles.scoreHigh;
   };
 
   if (loading && results.length === 0) {

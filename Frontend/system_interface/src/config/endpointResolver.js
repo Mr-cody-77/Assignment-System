@@ -21,10 +21,16 @@ export const endpoints = {
   addStudent: () => `${central()}/api/users/add_student/`,
   addTeacher: () => `${central()}/api/users/add_teacher/`,
 
-  // ── Questions (Central Server) ───────────────────────────
+  // ── Tests & Questions (Central Server) ───────────────────
+  tests: () => `${central()}/api/tests/`,
+  testById: (id) => `${central()}/api/tests/${id}/`,
+  createTest: () => `${central()}/api/tests/create/`,
+  toggleTestLive: (id) => `${central()}/api/tests/${id}/toggle-live/`,
+  activeTest: () => `${central()}/api/tests/active/`,
+  submitTest: () => `${central()}/api/tests/submit/`,
   questions: () => `${central()}/api/questions/`,
   questionById: (id) => `${central()}/api/questions/${id}/`,
-  createQuestion: () => `${central()}/api/questions/create/`,
+  aiGenerateTestCases: () => `${central()}/api/ai/generate/`,
 
   // ── Results (Central Server) ─────────────────────────────
   results: () => `${central()}/api/results/result/`,

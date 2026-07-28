@@ -37,6 +37,15 @@ export const getAssignmentById = async (id) => {
  * Response: { message, question_id }
  */
 export const createAssignment = async (data) => {
-  const res = await centralRequest.post(endpoints.createQuestion(), data);
+  const res = await centralRequest.post(endpoints.questions(), data);
+  return res.data;
+};
+
+/**
+ * Update an existing question (teacher only).
+ * PATCH /api/questions/<id>/
+ */
+export const updateAssignment = async (id, data) => {
+  const res = await centralRequest.patch(endpoints.questionById(id), data);
   return res.data;
 };

@@ -1,0 +1,56 @@
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(19, 27, 50, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(99, 120, 200, 0.2);
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.icon {
+  font-size: 18px;
+}
+
+.time {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e8ecf4;
+  letter-spacing: 0.05em;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b9ec0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.urgent {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.urgent .time {
+  color: #fbbf24;
+}
+
+.critical {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.1);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.critical .time {
+  color: #f87171;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}

@@ -40,22 +40,19 @@ export const formatScore = (score) => {
   if (score === null || score === undefined) return '—';
   const num = Number(score);
   if (isNaN(num)) return '—';
-  const pct = normalizeScorePercent(num);
-  return `${pct.toFixed(1)}%`;
+  return `${Number.isInteger(num) ? num : num.toFixed(2)}`;
 };
 
 export const normalizeScorePercent = (score) => {
   const num = Number(score);
-  if (isNaN(num)) return 0;
-  if (num >= 0 && num <= 1) return num * 100;
-  return Math.min(Math.max(num, 0), 100);
+  return isNaN(num) ? 0 : num;
 };
 
 export const averageScorePercent = (items = []) => {
   if (!items.length) return 0;
   const total = items.reduce((sum, item) => {
     const raw = typeof item === 'number' ? item : item?.score;
-    return sum + normalizeScorePercent(raw);
+    return sum + (Number(raw) || 0);
   }, 0);
   return total / items.length;
 };

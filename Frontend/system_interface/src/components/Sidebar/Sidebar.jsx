@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getAllTests } from '../../services/testService';
+import { stopLockdown } from '../../services/lockdownService';
 import styles from './Sidebar.module.css';
 
 const TEACHER_NAV = [
   { to: '/teacher', icon: 'DB', label: 'Dashboard', exact: true },
-  { to: '/teacher/assignments', icon: 'AL', label: 'Assignments' },
-  { to: '/teacher/add-assignment', icon: 'AS', label: 'Add Assignment' },
+  { to: '/teacher/tests', icon: 'TS', label: 'Tests' },
+  { to: '/teacher/create-test', icon: 'CT', label: 'Create Test' },
   { to: '/teacher/results', icon: 'RS', label: 'Student Results' },
   { to: '/teacher/analytics', icon: 'AN', label: 'Analytics' },
   { to: '/teacher/nodes', icon: 'ND', label: 'Node Connections' },
@@ -15,7 +17,7 @@ const TEACHER_NAV = [
 
 const STUDENT_NAV = [
   { to: '/student', icon: 'DB', label: 'Dashboard', exact: true },
-  { to: '/student/assignments', icon: 'AS', label: 'Assignments' },
+  { to: '/student/tests', icon: 'TS', label: 'Test Questions' },
   { to: '/student/tasks', icon: 'TS', label: 'Task Status' },
   { to: '/student/results', icon: 'RS', label: 'My Results' },
   { to: '/student/nodes', icon: 'ND', label: 'Node Connections' },
@@ -26,11 +28,33 @@ const Sidebar = ({ role, isOpen, onClose }) => {
   const navigate = useNavigate();
 
   const navItems = role === 'teacher' ? TEACHER_NAV : STUDENT_NAV;
+  const examActive = localStorage.getItem('exam_active') === 'true';
+  const [activeTest, setActiveTest] = useState(null);
+
+  useEffect(() => {
+    if (role === 'student' && examActive) {
+      getAllTests()
+        .then((tests) => {
+          if (tests && tests.length > 0) setActiveTest(tests[0]);
+        })
+        .catch((err) => console.error("Failed to fetch test for sidebar", err));
+    }
+  }, [role, examActive]);
 
   const getInitials = (name = '') =>
     name.slice(0, 2).toUpperCase() || '??';
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (examActive) {
+      try {
+        await stopLockdown();
+      } catch (err) {
+        console.error('Failed to unlock ports:', err);
+      }
+      localStorage.removeItem('exam_active');
+      localStorage.removeItem('exam_duration');
+      localStorage.removeItem('exam_end_time');
+    }
     logout();
     navigate('/login');
   };
@@ -75,6 +99,45 @@ const Sidebar = ({ role, isOpen, onClose }) => {
               <span>{item.label}</span>
             </NavLink>
           ))}
+
+          {role === 'student' && examActive && (
+            <div style={{ marginTop: '24px' }}>
+              <div className={styles.navSection} style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', animation: `${styles.pulseLive} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite` }} />
+                Live Test
+              </div>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                style={{ width: 'calc(100% - 24px)', margin: '0 auto 16px auto', display: 'block', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                onClick={() => {
+                  navigate('/student/tests');
+                  if (window.innerWidth < 900) onClose?.();
+                }}
+              >
+                Go to Test
+              </button>
+              {activeTest?.questions && activeTest.questions.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '0 12px' }}>
+                  {activeTest.questions.map((q, idx) => (
+                    <NavLink
+                      key={q.id}
+                      to={`/student/tests/question/${q.id}`}
+                      className={({ isActive }) => 
+                        isActive 
+                          ? `${styles.questionBubble} ${styles.questionBubbleActive}` 
+                          : styles.questionBubble
+                      }
+                      onClick={() => {
+                        if (window.innerWidth < 900) onClose?.();
+                      }}
+                    >
+                      Q{idx + 1}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         <div className={styles.footer}>

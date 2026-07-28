@@ -15,7 +15,7 @@ import { useToast } from '../../hooks/useToast';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
 import StatCard from '../../components/common/StatCard';
-import { getAllAssignments } from '../../services/assignmentService';
+import { getAllTests } from '../../services/testService';
 import { getResults } from '../../services/resultService';
 import { averageScorePercent, formatScore } from '../../utils/formatters';
 
@@ -41,21 +41,21 @@ export default function AnalyticsPage() {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [assignments, setAssignments] = useState([]);
+  const [tests, setTests] = useState([]);
   const [results, setResults] = useState([]);
-  const [selectedQuestion, setSelectedQuestion] = useState('');
+  const [selectedTestId, setSelectedTestId] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
       setLoading(true);
-      const [assignmentRes, resultRes] = await Promise.allSettled([
-        getAllAssignments(),
+      const [testsRes, resultRes] = await Promise.allSettled([
+        getAllTests(),
         getResults(),
       ]);
 
-      if (assignmentRes.status === 'fulfilled') {
-        setAssignments(Array.isArray(assignmentRes.value) ? assignmentRes.value : []);
+      if (testsRes.status === 'fulfilled') {
+        setTests(Array.isArray(testsRes.value) ? testsRes.value : []);
       }
 
       if (resultRes.status === 'fulfilled') {
@@ -71,9 +71,12 @@ export default function AnalyticsPage() {
   }, [addToast]);
 
   const filteredResults = useMemo(() => {
-    if (!selectedQuestion) return results;
-    return results.filter((result) => String(result.question_id) === selectedQuestion);
-  }, [results, selectedQuestion]);
+    if (!selectedTestId) return results;
+    const test = tests.find(t => String(t.id) === selectedTestId);
+    if (!test) return [];
+    const testQuestionIds = test.questions?.map(q => String(q.id)) || [];
+    return results.filter((result) => testQuestionIds.includes(String(result.question_id)));
+  }, [results, selectedTestId, tests]);
 
   const statusData = useMemo(() => {
     const grouped = groupBy(filteredResults, (result) =>
@@ -125,14 +128,14 @@ export default function AnalyticsPage() {
           actions={
             <select
               className="form-select"
-              value={selectedQuestion}
-              onChange={(event) => setSelectedQuestion(event.target.value)}
+              value={selectedTestId}
+              onChange={(event) => setSelectedTestId(event.target.value)}
               style={{ minWidth: 220 }}
             >
-              <option value="">All Assignments</option>
-              {assignments.map((assignment) => (
-                <option key={assignment.id} value={String(assignment.id)}>
-                  {assignment.title}
+              <option value="">All Tests</option>
+              {tests.map((test) => (
+                <option key={test.id} value={String(test.id)}>
+                  {test.name} {test.is_live ? '(Live)' : ''}
                 </option>
               ))}
             </select>

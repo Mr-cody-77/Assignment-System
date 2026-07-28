@@ -1,13 +1,21 @@
 from django.urls import path
-
 from .views import (
-    CreateQuestionView,
-    QuestionListView,
-    QuestionDetailView
+    CreateTestView, TestListView, TestDetailView, TestToggleLiveView, ActiveTestConfigView,
+    StartTestView, SubmitTestView, QuestionListView, QuestionDetailView, AITestCaseGeneratorView
 )
 
 urlpatterns = [
-    path("",QuestionListView.as_view(),name="question-list"),
-    path("create/",CreateQuestionView.as_view(),name="create-question"),
-    path("<int:question_id>/",QuestionDetailView.as_view(),name="question-detail"),
+    # Test endpoints
+    path('tests/', TestListView.as_view(), name='test-list'),
+    path('tests/create/', CreateTestView.as_view(), name='test-create'),
+    path('tests/active/', ActiveTestConfigView.as_view(), name='test-active'),
+    path('tests/start/', StartTestView.as_view(), name='test-start'),
+    path('tests/submit/', SubmitTestView.as_view(), name='test-submit'),
+    path('tests/<int:test_id>/', TestDetailView.as_view(), name='test-detail'),
+    path('tests/<int:test_id>/toggle-live/', TestToggleLiveView.as_view(), name='test-toggle'),
+    
+    # Question endpoints
+    path('questions/', QuestionListView.as_view(), name='question-list'),
+    path('questions/<int:question_id>/', QuestionDetailView.as_view(), name='question-detail'),
+    path('ai/generate/', AITestCaseGeneratorView.as_view(), name='ai-generate'),
 ]

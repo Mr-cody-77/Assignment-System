@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/useToast';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
-import ResultTable from '../../components/ResultTable/ResultTable';
+import GroupedResultTable from '../../components/ResultTable/GroupedResultTable';
 import StatCard from '../../components/common/StatCard';
 import SearchBar from '../../components/SearchBar/SearchBar';
 import { getResults } from '../../services/resultService';
+import { getAllTests, getSubmittedTests } from '../../services/testService';
 import { exportToCSV, filterData } from '../../utils/helpers';
 import { averageScorePercent, formatScore } from '../../utils/formatters';
 import styles from './StudentResults.module.css';
@@ -22,6 +23,9 @@ const StudentResults = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [tests, setTests] = useState([]);
+  const [selectedTestId, setSelectedTestId] = useState('');
+  const [testSubmissions, setTestSubmissions] = useState([]);
 
   // ── PLAGIARISM DETECTION — new isolated state (does not touch existing state) ──
   const [plagiarismMap, setPlagiarismMap] = useState({});
@@ -29,10 +33,16 @@ const StudentResults = () => {
 
   const fetchResults = useCallback(async () => {
     try {
-      const data = await getResults(); // No roll_number → teacher gets all
+      const [data, testsData, submissionsData] = await Promise.all([
+        getResults(),
+        getAllTests(),
+        getSubmittedTests()
+      ]);
       setResults(Array.isArray(data) ? data : []);
+      setTests(Array.isArray(testsData) ? testsData : []);
+      setTestSubmissions(submissionsData?.submissions || []);
     } catch (err) {
-      addToast('Failed to load results', 'error');
+      addToast('Failed to load results or tests', 'error');
     } finally {
       setLoading(false);
     }
@@ -61,8 +71,39 @@ const StudentResults = () => {
   }, [fetchPlagiarismFlags]);
   // ─────────────────────────────────────────────────────────────────
 
+  // Filter results: only show results for students who have submitted the test
+  const submissionFilteredResults = useMemo(() => {
+    // Build a map: questionId -> testId
+    const questionToTestId = {};
+    tests.forEach(test => {
+      test.questions?.forEach(q => {
+        questionToTestId[String(q.id)] = test.id;
+      });
+    });
+
+    // Build a set of "testId:rollNumber" pairs from submissions
+    const submittedPairs = new Set(
+      testSubmissions.map(s => `${s.test_id}:${s.student__roll_number}`)
+    );
+
+    return results.filter(r => {
+      const testId = questionToTestId[String(r.question_id)];
+      if (!testId) return false; // no test found for this question
+      return submittedPairs.has(`${testId}:${r.roll_number}`);
+    });
+  }, [results, tests, testSubmissions]);
+
+  const testFilteredResults = selectedTestId
+    ? submissionFilteredResults.filter((r) => {
+        const test = tests.find(t => String(t.id) === selectedTestId);
+        if (!test) return false;
+        const testQuestionIds = test.questions?.map(q => String(q.id)) || [];
+        return testQuestionIds.includes(String(r.question_id));
+      })
+    : submissionFilteredResults;
+
   const filteredResults = filterData(
-    statusFilter ? results.filter((r) => r.status?.toLowerCase() === statusFilter) : results,
+    statusFilter ? testFilteredResults.filter((r) => r.status?.toLowerCase() === statusFilter) : testFilteredResults,
     search,
     ['roll_number', 'student', 'question_id', 'status']
   );
@@ -71,6 +112,56 @@ const StudentResults = () => {
     ['accepted', 'completed'].includes(r.status?.toLowerCase())
   ).length;
   const avgScore = averageScorePercent(results);
+
+  const groupedResults = useMemo(() => {
+    const questionMaxMarks = {};
+    let totalTestMarks = 0;
+    
+    if (selectedTestId) {
+      const selectedTest = tests.find(t => String(t.id) === selectedTestId);
+      if (selectedTest) {
+        selectedTest.questions?.forEach(q => {
+          questionMaxMarks[q.id] = q.marks || 10;
+          totalTestMarks += q.marks || 10;
+        });
+      }
+    } else {
+      tests.forEach(test => {
+        test.questions?.forEach(q => {
+          questionMaxMarks[q.id] = q.marks || 10;
+        });
+      });
+    }
+
+    const groupsMap = {};
+    filteredResults.forEach(r => {
+      const key = r.roll_number;
+      if (!groupsMap[key]) {
+        groupsMap[key] = {
+          id: key,
+          title: r.student || r.roll_number,
+          subtitle: r.student ? r.roll_number : '',
+          marks: 0,
+          max_marks: selectedTestId ? totalTestMarks : undefined,
+          questionsDone: new Set(),
+          results: []
+        };
+      }
+      groupsMap[key].marks += r.score || 0;
+      groupsMap[key].questionsDone.add(r.question_id);
+      
+      const qMax = questionMaxMarks[r.question_id];
+      groupsMap[key].results.push({
+        ...r,
+        max_score: qMax
+      });
+    });
+
+    return Object.values(groupsMap).map(g => ({
+      ...g,
+      questionsDone: g.questionsDone.size
+    })).sort((a, b) => b.marks - a.marks);
+  }, [filteredResults, selectedTestId, tests]);
 
   return (
     <div className="app-shell">
@@ -101,6 +192,20 @@ const StudentResults = () => {
 
           {/* Filter bar */}
           <div className={styles.filterBar}>
+            <select
+              className={`form-select ${styles.filterSelect}`}
+              value={selectedTestId}
+              onChange={(e) => setSelectedTestId(e.target.value)}
+              style={{ minWidth: 200 }}
+            >
+              <option value="">All Tests</option>
+              {tests.map(test => (
+                <option key={test.id} value={String(test.id)}>
+                  {test.name} {test.is_live ? '(Live)' : ''}
+                </option>
+              ))}
+            </select>
+
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -121,7 +226,12 @@ const StudentResults = () => {
             </select>
           </div>
 
-          <ResultTable results={filteredResults} loading={loading} showStudent plagiarismMap={plagiarismMap} />
+          <GroupedResultTable 
+            groups={groupedResults} 
+            groupBy="student" 
+            showStudent={true} 
+            plagiarismMap={plagiarismMap} 
+          />
         </div>
       </div>
     </div>

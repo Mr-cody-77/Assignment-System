@@ -5,7 +5,7 @@ import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
 import StatCard from '../../components/common/StatCard';
 import { SkeletonCard } from '../../components/Loader/SkeletonLoader';
-import { getAllAssignments } from '../../services/assignmentService';
+import { getAllTests } from '../../services/testService';
 import { getResults } from '../../services/resultService';
 import { getNodeInfo } from '../../services/nodeService';
 import { getTaskStatus } from '../../services/taskService';
@@ -23,13 +23,13 @@ const TeacherDashboard = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [questions, results, nodeInfo, tasks] = await Promise.allSettled([
-          getAllAssignments(),
+        const [tests, results, nodeInfo, tasks] = await Promise.allSettled([
+          getAllTests(),
           getResults(),
           getNodeInfo(),
           getTaskStatus(),
         ]);
-        const q = questions.status === 'fulfilled' ? questions.value : [];
+        const q = tests.status === 'fulfilled' ? tests.value : [];
         const r = results.status === 'fulfilled' ? results.value : [];
         const n = nodeInfo.status === 'fulfilled' ? nodeInfo.value : { nodes: [] };
         const t = tasks.status === 'fulfilled' ? tasks.value : [];
@@ -55,7 +55,7 @@ const TeacherDashboard = () => {
   }, []);
 
   const quickActions = [
-    { icon: '📝', label: 'Add Assignment', desc: 'Create a new coding problem', path: '/teacher/add-assignment', color: '#6366f1' },
+    { icon: '📝', label: 'Create Test', desc: 'Create a new test', path: '/teacher/create-test', color: '#6366f1' },
     { icon: '📊', label: 'View Results', desc: 'See all student submissions', path: '/teacher/results', color: '#10b981' },
     { icon: '🖥️', label: 'Node Monitor', desc: 'Monitor computing nodes', path: '/teacher/nodes', color: '#3b82f6' },
     { icon: '👤', label: 'Add User', desc: 'Add students or teachers', path: '/teacher/add-user', color: '#f59e0b' },
@@ -79,11 +79,11 @@ const TeacherDashboard = () => {
           ) : (
             <div className={styles.statsGrid}>
               <StatCard
-                label="Total Assignments"
+                label="Total Tests"
                 value={stats.questions}
                 icon="📝"
                 color="#6366f1"
-                onClick={() => navigate('/teacher/assignments')}
+                onClick={() => navigate('/teacher/tests')}
               />
               <StatCard label="Total Submissions" value={stats.results} icon="📊" color="#10b981" />
               <StatCard label="Connected Nodes" value={stats.nodes} icon="🖥️" color="#3b82f6" />
@@ -150,6 +150,8 @@ const TeacherDashboard = () => {
               </table>
             </div>
           )}
+
+
         </div>
       </div>
     </div>

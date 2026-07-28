@@ -10,6 +10,9 @@ import Loader from '../../components/Loader/Loader';
 import { getAssignmentById } from '../../services/assignmentService';
 import { submitTask } from '../../services/taskService';
 import { runVisibleTestCases } from '../../services/localExecutionService';
+import Timer from '../../components/Timer/Timer';
+import { stopLockdown } from '../../services/lockdownService';
+import { submitTest } from '../../services/testService';
 import styles from './AssignmentDetails.module.css';
 
 const TEMPLATES = {
@@ -33,7 +36,7 @@ const buildSubmitQuestion = (question) => {
 
   return {
     ...question,
-    max_score: question.max_score || 100,
+    max_score: question.marks || question.max_score || 100,
     time_limit_ms: question.time_limit_ms || 2000,
     memory_limit_mb: question.memory_limit_mb || 256,
     test_cases: addPointsToCases(visible, 0, totalCases),
@@ -43,7 +46,7 @@ const buildSubmitQuestion = (question) => {
 
 const AssignmentDetails = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -62,7 +65,36 @@ const AssignmentDetails = () => {
   const [submittedTaskId, setSubmittedTaskId] = useState(null);
   const [terminalResults, setTerminalResults] = useState(null);
 
+  const examActive = localStorage.getItem('exam_active') === 'true';
+  const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
+
+  const handleExamEnd = async () => {
+    try {
+      // Submit the test formally
+      const testId = localStorage.getItem('exam_test_id');
+      if (testId) {
+        await submitTest(testId);
+      }
+    } catch (err) {
+      console.error('Failed to submit test:', err);
+    }
+    try {
+      await stopLockdown();
+    } catch (err) {
+      console.error('Failed to unlock ports:', err);
+    }
+    localStorage.removeItem('exam_active');
+    localStorage.removeItem('exam_duration');
+    localStorage.removeItem('exam_end_time');
+    localStorage.removeItem('exam_test_id');
+    navigate('/student');
+  };
+
   useEffect(() => {
+    if (!examActive) {
+      navigate('/student');
+      return;
+    }
     const fetch = async () => {
       try {
         const data = await getAssignmentById(id);
@@ -74,7 +106,7 @@ const AssignmentDetails = () => {
       }
     };
     fetch();
-  }, [id]);
+  }, [id, examActive, navigate]);
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
@@ -163,10 +195,18 @@ const AssignmentDetails = () => {
       <div className="main-content">
         <Header
           title={question.title}
-          subtitle={`Problem #${id}`}
+          subtitle={`Problem #${id} | ${question.marks || question.max_score || 0} Marks`}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           actions={
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {examActive && (
+                <>
+                  <Timer durationMinutes={examDuration} onTimeUp={handleExamEnd} />
+                  <button className="btn btn-success btn-sm" onClick={handleExamEnd}>
+                    📤 Submit Test
+                  </button>
+                </>
+              )}
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={handleRun}
@@ -184,7 +224,7 @@ const AssignmentDetails = () => {
                   <><span className="spinner" style={{ width: 14, height: 14 }} /> Submitting…</>
                 ) : '⬆ Submit'}
               </button>
-            </>
+            </div>
           }
         />
 

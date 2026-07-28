@@ -8,27 +8,53 @@ import AssignmentCard from '../../components/AssignmentCard/AssignmentCard';
 import { SkeletonCard } from '../../components/Loader/SkeletonLoader';
 import { getAllAssignments } from '../../services/assignmentService';
 import { getTaskStatus } from '../../services/taskService';
+import { getAllTests } from '../../services/testService';
+import Timer from '../../components/Timer/Timer';
+import { stopLockdown } from '../../services/lockdownService';
 import styles from './StudentDashboard.module.css';
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState([]);
   const [taskCounts, setTaskCounts] = useState({ submitted: 0, pending: 0, running: 0 });
+  const [liveTest, setLiveTest] = useState(null);
+
+  const examActive = localStorage.getItem('exam_active') === 'true';
+  const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
+
+  const handleExamEnd = async () => {
+    try {
+      await stopLockdown();
+    } catch (err) {
+      console.error('Failed to unlock ports:', err);
+    }
+    localStorage.removeItem('exam_active');
+    localStorage.removeItem('exam_duration');
+    localStorage.removeItem('exam_end_time');
+    navigate('/student');
+  };
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [asgRes, taskRes] = await Promise.allSettled([
+        const [asgRes, taskRes, testRes] = await Promise.allSettled([
           getAllAssignments(),
           getTaskStatus(),
+          getAllTests(),
         ]);
         const asgn = asgRes.status === 'fulfilled' ? asgRes.value : [];
         const tasks = taskRes.status === 'fulfilled'
           ? taskRes.value.filter((t) => t.roll_number === user?.username)
           : [];
+        const tests = testRes.status === 'fulfilled' ? testRes.value : [];
+        
+        if (tests.length > 0) {
+          setLiveTest(tests[0]);
+        }
+
         setAssignments(Array.isArray(asgn) ? asgn : []);
         setTaskCounts({
           submitted: tasks.filter((t) => ['completed', 'failed'].includes(t.status?.toLowerCase())).length,
@@ -42,7 +68,6 @@ const StudentDashboard = () => {
     fetchAll();
   }, [user]);
 
-  const recentAssignments = assignments.slice(-3).reverse();
 
   return (
     <div className="app-shell">
@@ -52,6 +77,16 @@ const StudentDashboard = () => {
           title="Dashboard"
           subtitle={`Welcome back, ${user?.username || 'Student'}!`}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          actions={
+            examActive ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Timer durationMinutes={examDuration} onTimeUp={handleExamEnd} />
+                <button className="btn btn-danger btn-sm" onClick={handleExamEnd}>
+                  End Test
+                </button>
+              </div>
+            ) : null
+          }
         />
         <div className="page-body">
           {/* Stats */}
@@ -70,13 +105,26 @@ const StudentDashboard = () => {
 
           {/* Quick Actions */}
           <div className={styles.quickActions}>
-            <div className={styles.actionCard} onClick={() => navigate('/student/assignments')} role="button" tabIndex={0}>
-              <div className={styles.actionIcon} style={{ background: 'rgba(99,102,241,0.15)' }}>📝</div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>Browse Assignments</div>
-                <div style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>View and solve coding problems</div>
-              </div>
-            </div>
+            {examActive ? (
+               <div className={styles.actionCard} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid var(--clr-primary)' }} onClick={() => navigate('/student/tests')} role="button" tabIndex={0}>
+                 <div className={styles.actionIcon} style={{ background: 'rgba(99,102,241,0.2)' }}>🚀</div>
+                 <div>
+                   <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--clr-primary)' }}>Continue Test</div>
+                   <div style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>Your test is currently active. Click here to return.</div>
+                 </div>
+               </div>
+            ) : liveTest ? (
+               <div className={styles.actionCard} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid var(--clr-success)' }} onClick={() => navigate('/student/start-exam')} role="button" tabIndex={0}>
+                 <div className={styles.actionIcon} style={{ background: 'rgba(16,185,129,0.2)' }}>📝</div>
+                 <div>
+                   <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--clr-success)' }}>Test Available: {liveTest.title}</div>
+                   <div style={{ fontSize: 13, color: 'var(--clr-text-2)', marginTop: 4 }}>
+                     <button className="btn btn-success btn-sm">Enter Test</button>
+                   </div>
+                 </div>
+               </div>
+            ) : null}
+
             <div className={styles.actionCard} onClick={() => navigate('/student/tasks')} role="button" tabIndex={0}>
               <div className={styles.actionIcon} style={{ background: 'rgba(16,185,129,0.15)' }}>⏳</div>
               <div>
@@ -86,30 +134,6 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          {/* Recent Assignments */}
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Recent Assignments</h2>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/student/assignments')}>
-              View All →
-            </button>
-          </div>
-          {loading ? (
-            <div className={styles.assignmentsGrid}>
-              {[1,2,3].map((i) => <SkeletonCard key={i} />)}
-            </div>
-          ) : recentAssignments.length === 0 ? (
-            <p style={{ color: 'var(--clr-text-3)', fontSize: 14 }}>No assignments available yet.</p>
-          ) : (
-            <div className={styles.assignmentsGrid}>
-              {recentAssignments.map((a) => (
-                <AssignmentCard
-                  key={a.id}
-                  assignment={a}
-                  onClick={() => navigate(`/student/assignments/${a.id}`)}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

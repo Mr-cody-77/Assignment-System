@@ -16,6 +16,7 @@ def submit_task(
     question,
     language,
     solution,
+    token=None,
 ):
     task = create_task(
         roll_number=roll_number,
@@ -23,6 +24,9 @@ def submit_task(
         language=language,
         solution=solution,
     )
+    
+    # Store token in task so the worker can use it to push results back
+    task["token"] = token
 
     # --- MODIFIED HERE: Fetch test cases from Centralized DB ---
     question_id = task.get("question_id") or (question.get("id") if isinstance(question, dict) else question)
@@ -32,7 +36,10 @@ def submit_task(
         url = f"http://{db['ip']}:{db['port']}/api/questions/{question_id}/"
         
         try:
-            with urllib.request.urlopen(url, timeout=5) as response:
+            req = urllib.request.Request(url)
+            if token:
+                req.add_header("Authorization", f"Bearer {token}")
+            with urllib.request.urlopen(req, timeout=5) as response:
                 q_data = json.loads(response.read().decode())
                 # Inject the fetched test cases into the task payload
                 task["test_cases"] = q_data.get("test_cases", [])

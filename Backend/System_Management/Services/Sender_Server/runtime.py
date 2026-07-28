@@ -49,7 +49,16 @@ class Runtime:
         self.nodes = {}
 
         # Centralized database server
-        self.database_server = None
+        db_ip = os.environ.get("DATABASE_SERVER_IP")
+        db_port = os.environ.get("DATABASE_SERVER_PORT")
+        if db_ip and db_port:
+            self.database_server = {
+                "ip": db_ip,
+                "port": int(db_port),
+                "last_seen": time.time(),
+            }
+        else:
+            self.database_server = None
 
         # Zeroconf references
         self.zc = None

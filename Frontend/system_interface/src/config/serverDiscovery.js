@@ -4,8 +4,8 @@ import axios from 'axios';
 const NODE_URL = process.env.REACT_APP_NODE_URL || 'http://127.0.0.1:8001';
 const NODE_INFO_ENDPOINT = `${NODE_URL}/api/node_info/`;
 
-const MAX_RETRIES = 3;
-const BASE_DELAY_MS = 2000;
+const MAX_RETRIES = 2;
+const BASE_DELAY_MS = 1000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -15,7 +15,7 @@ export async function discoverServers(retries = MAX_RETRIES) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await axios.get(NODE_INFO_ENDPOINT, {
-        timeout: 8000,
+        timeout: 3000,
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -29,9 +29,9 @@ export async function discoverServers(retries = MAX_RETRIES) {
 
       const { ip, port } = data.database_server;
 
-      if (!ip || !port) {
+      if (!ip || !port || ip === 'Pending...') {
         throw new Error(
-          'Invalid database_server info: ip or port is missing'
+          'Database server is pending discovery via Zeroconf. Retrying...'
         );
       }
 

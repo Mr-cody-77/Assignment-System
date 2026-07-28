@@ -9,9 +9,9 @@ import NodeConnections from '../pages/NodeConnections/NodeConnections';
 
 // Teacher pages
 import TeacherDashboard from '../pages/teacher/TeacherDashboard.jsx';
-import TeacherAssignments from '../pages/teacher/TeacherAssignments';
-import TeacherAssignmentDetails from '../pages/teacher/TeacherAssignmentDetails';
-import AddAssignment from '../pages/teacher/AddAssignment';
+import TeacherTests from '../pages/teacher/TeacherTests';
+import TeacherTestDetails from '../pages/teacher/TeacherTestDetails';
+import CreateTest from '../pages/teacher/CreateTest';
 import StudentResults from '../pages/teacher/StudentResults';
 import TeacherNodeConnections from '../pages/teacher/TeacherNodeConnections';
 import AddUser from '../pages/teacher/AddUser';
@@ -19,11 +19,12 @@ import AnalyticsPage from '../pages/teacher/AnalyticsPage';
 
 // Student pages
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
-import Assignments from '../pages/student/Assignments';
+import TestQuestions from '../pages/student/TestQuestions';
 import AssignmentDetails from '../pages/student/AssignmentDetails';
 import TaskStatus from '../pages/student/TaskStatus';
 import Results from '../pages/student/Results';
 import StudentNodeConnections from '../pages/student/StudentNodeConnections';
+import StartExam from '../pages/student/StartExam';
 
 export default function AppRoutes() {
   return (
@@ -43,26 +44,26 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/teacher/assignments"
+        path="/teacher/tests"
         element={
           <ProtectedRoute requiredRole="teacher">
-            <TeacherAssignments />
+            <TeacherTests />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/teacher/assignments/:id"
+        path="/teacher/tests/:id"
         element={
           <ProtectedRoute requiredRole="teacher">
-            <TeacherAssignmentDetails />
+            <TeacherTestDetails />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/teacher/add-assignment"
+        path="/teacher/create-test"
         element={
           <ProtectedRoute requiredRole="teacher">
-            <AddAssignment />
+            <CreateTest />
           </ProtectedRoute>
         }
       />
@@ -101,6 +102,14 @@ export default function AppRoutes() {
 
       {/* ── Student ───────────────────────────────── */}
       <Route
+        path="/student/start-exam"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <StartExam />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/student"
         element={
           <ProtectedRoute requiredRole="student">
@@ -109,15 +118,15 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/student/assignments"
+        path="/student/tests"
         element={
           <ProtectedRoute requiredRole="student">
-            <Assignments />
+            <TestQuestions />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/student/assignments/:id"
+        path="/student/tests/question/:id"
         element={
           <ProtectedRoute requiredRole="student">
             <AssignmentDetails />
