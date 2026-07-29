@@ -40,7 +40,7 @@ exit /b 1
 :python_found
 echo [OK] Python found using command: %PYTHON_CMD%
 :: Check for Node.js (npm)
-npm --version >nul 2>&1
+call npm --version >nul 2>&1
 if %errorLevel% neq 0 (
     echo [ERROR] Node.js or npm is not installed or not in PATH. Please install Node.js.
     pause
