@@ -93,13 +93,29 @@ def is_ist_now_in_range(start_time_iso, end_time_iso):
         logging.error(f"Error parsing dates: {e}")
         return False
 
+def is_admin():
+    try:
+        import ctypes
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
+    except Exception:
+        return False
+
 def lock_internet():
     try:
+        # We block all public IP ranges but avoid blocking 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+        public_ipv4 = (
+            "'1.0.0.0-9.255.255.255', "
+            "'11.0.0.0-126.255.255.255', "
+            "'128.0.0.0-172.15.255.255', "
+            "'172.32.0.0-192.167.255.255', "
+            "'192.169.0.0-255.255.255.255'"
+        )
         script = (
+            "$ErrorActionPreference = 'Stop'; "
+            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
-            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -Direction Outbound -Action Block -Enabled True; "
-            "New-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -Direction Outbound -Action Allow -RemoteAddress '127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '224.0.0.0/4', '255.255.255.255' -Enabled True;"
+            f"New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress {public_ipv4} -Enabled True;"
         )
         res1 = subprocess.run([
             'powershell', '-Command', script
@@ -114,9 +130,13 @@ def lock_internet():
 
 def unlock_internet():
     try:
+        script = (
+            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
+            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
+            "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue;"
+        )
         res1 = subprocess.run([
-            'powershell', '-Command',
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue"
+            'powershell', '-Command', script
         ], capture_output=True, text=True)
         
         if res1.returncode != 0 and "No MSFT_NetFirewallRule" not in res1.stderr:
@@ -127,6 +147,11 @@ def unlock_internet():
         logging.error(f"Failed to unlock internet: {e}")
 
 def main():
+    if not is_admin():
+        logging.critical("Lockdown daemon MUST be run as Administrator! Firewall rules will fail. Exiting.")
+        print("CRITICAL: Lockdown daemon MUST be run as Administrator!")
+        sys.exit(1)
+        
     logging.info("Lockdown daemon started.")
     is_currently_locked = False
     

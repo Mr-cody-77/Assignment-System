@@ -29,6 +29,8 @@ set DAEMON_SCRIPT=%SCRIPT_DIR%lockdown_daemon.py
 schtasks /create /tn "ExamLockdownDaemon" /tr "\"%PYTHON_EXE%\" \"%DAEMON_SCRIPT%\"" /sc onstart /ru SYSTEM /rl HIGHEST /f
 
 if %errorLevel% == 0 (
+    echo Configuring task to run on battery power...
+    powershell -Command "Set-ScheduledTask -TaskName 'ExamLockdownDaemon' -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0)"
     echo Daemon installed successfully.
     echo Starting the daemon now...
     schtasks /run /tn "ExamLockdownDaemon"
