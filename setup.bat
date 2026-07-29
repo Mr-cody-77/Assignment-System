@@ -19,25 +19,26 @@ set PYTHON_CMD=
 python --version >nul 2>&1
 if %errorLevel% == 0 set PYTHON_CMD=python
 
-if "%PYTHON_CMD%"=="" (
-    py --version >nul 2>&1
-    if %errorLevel% == 0 set PYTHON_CMD=py
-)
+if not "%PYTHON_CMD%"=="" goto python_found
 
-if "%PYTHON_CMD%"=="" (
-    python3 --version >nul 2>&1
-    if %errorLevel% == 0 set PYTHON_CMD=python3
-)
+py --version >nul 2>&1
+if %errorLevel% == 0 set PYTHON_CMD=py
 
-if "%PYTHON_CMD%"=="" (
-    echo [ERROR] Python is not installed, or not in the Administrator PATH.
-    echo TIP: If you just installed Python, try restarting your PC.
-    echo TIP: Make sure you checked "Add Python to PATH" AND "Install for all users" during installation.
-    pause
-    exit /b 1
-)
+if not "%PYTHON_CMD%"=="" goto python_found
+
+python3 --version >nul 2>&1
+if %errorLevel% == 0 set PYTHON_CMD=python3
+
+if not "%PYTHON_CMD%"=="" goto python_found
+
+echo [ERROR] Python is not installed, or not in the Administrator PATH.
+echo TIP: If you just installed Python, try restarting your PC.
+echo TIP: Make sure you checked "Add Python to PATH" AND "Install for all users" during installation.
+pause
+exit /b 1
+
+:python_found
 echo [OK] Python found using command: %PYTHON_CMD%
-
 :: Check for Node.js (npm)
 npm --version >nul 2>&1
 if %errorLevel% neq 0 (
