@@ -11,6 +11,11 @@ export const getTestById = async (id) => {
   return res.data;
 };
 
+export const startTest = async () => {
+  const res = await centralRequest.post(endpoints.startTest());
+  return res.data;
+};
+
 export const createTest = async (data) => {
   const res = await centralRequest.post(endpoints.createTest(), data);
   return res.data;

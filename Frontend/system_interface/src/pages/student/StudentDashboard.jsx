@@ -8,7 +8,7 @@ import AssignmentCard from '../../components/AssignmentCard/AssignmentCard';
 import { SkeletonCard } from '../../components/Loader/SkeletonLoader';
 import { getAllAssignments } from '../../services/assignmentService';
 import { getTaskStatus } from '../../services/taskService';
-import { getAllTests } from '../../services/testService';
+import { getAllTests, getSubmittedTests } from '../../services/testService';
 import Timer from '../../components/Timer/Timer';
 import styles from './StudentDashboard.module.css';
 
@@ -20,6 +20,7 @@ const StudentDashboard = () => {
   const [assignments, setAssignments] = useState([]);
   const [taskCounts, setTaskCounts] = useState({ submitted: 0, pending: 0, running: 0 });
   const [liveTest, setLiveTest] = useState(null);
+  const [submittedTestIds, setSubmittedTestIds] = useState([]);
 
   const examActive = localStorage.getItem('exam_active') === 'true';
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
@@ -34,10 +35,11 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [asgRes, taskRes, testRes] = await Promise.allSettled([
+        const [asgRes, taskRes, testRes, subRes] = await Promise.allSettled([
           getAllAssignments(),
           getTaskStatus(),
           getAllTests(),
+          getSubmittedTests(),
         ]);
         const asgn = asgRes.status === 'fulfilled' ? asgRes.value : [];
         const tasks = taskRes.status === 'fulfilled'
@@ -48,6 +50,9 @@ const StudentDashboard = () => {
         if (tests.length > 0) {
           setLiveTest(tests[0]);
         }
+
+        const submitted = subRes.status === 'fulfilled' ? (subRes.value.submitted_test_ids || []) : [];
+        setSubmittedTestIds(submitted.map(String));
 
         setAssignments(Array.isArray(asgn) ? asgn : []);
         setTaskCounts({
@@ -105,6 +110,14 @@ const StudentDashboard = () => {
                  <div>
                    <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--clr-primary)' }}>Continue Test</div>
                    <div style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>Your test is currently active. Click here to return.</div>
+                 </div>
+               </div>
+             ) : liveTest && submittedTestIds.includes(String(liveTest.id)) ? (
+               <div className={styles.actionCard} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid #f59e0b' }}>
+                 <div className={styles.actionIcon} style={{ background: 'rgba(245,158,11,0.2)' }}>✅</div>
+                 <div>
+                   <div style={{ fontWeight: 700, fontSize: 16, color: '#f59e0b' }}>Already Submitted: {liveTest.name || liveTest.title}</div>
+                   <div style={{ fontSize: 13, color: 'var(--clr-text-2)', marginTop: 4 }}>You have already completed this test.</div>
                  </div>
                </div>
             ) : liveTest ? (

@@ -285,6 +285,48 @@ class QuestionDetailView(APIView):
 class AITestCaseGeneratorView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def _run_reference_solution(self, code, input_data, timeout_s=10):
+        """Run a Python reference solution against a single test case input."""
+        import tempfile
+        import subprocess
+        import sys
+        tmpdir = tempfile.mkdtemp(prefix='tc_validate_')
+        try:
+            src_path = os.path.join(tmpdir, 'ref_solution.py')
+            with open(src_path, 'w', encoding='utf-8') as f:
+                f.write(code)
+            proc = subprocess.run(
+                [sys.executable, src_path],
+                input=str(input_data),
+                capture_output=True, text=True,
+                timeout=timeout_s, cwd=tmpdir,
+            )
+            if proc.returncode != 0:
+                return None
+            return proc.stdout.strip()
+        except (subprocess.TimeoutExpired, Exception):
+            return None
+        finally:
+            import shutil
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def _validate_test_cases(self, cases, ref_code):
+        """Validate test cases by running reference solution. Returns (valid, discarded_count)."""
+        if not ref_code or not ref_code.strip():
+            return cases, 0
+
+        valid = []
+        discarded = 0
+        for case in cases:
+            inp = case.get('input', '')
+            expected = str(case.get('output', '')).strip()
+            actual = self._run_reference_solution(ref_code, inp)
+            if actual is not None and actual == expected:
+                valid.append(case)
+            else:
+                discarded += 1
+        return valid, discarded
+
     def post(self, request):
         if request.user.role != "teacher":
             return Response({"error": "Only teachers can generate testcases"}, status=status.HTTP_403_FORBIDDEN)
@@ -301,22 +343,29 @@ class AITestCaseGeneratorView(APIView):
         if not api_key:
             return Response({"error": "Gemini API Key not configured on the server"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        prompt = f"""You are an expert competitive programming testcase generator. 
-Generate testcases covering a wide range of the given constraints for this coding problem:
+        prompt = f"""You are an expert competitive programming testcase generator and problem setter.
+Generate testcases, format descriptions, and a reference solution for this coding problem:
 Title: {title}
 Description: {description}
 Constraints: {constraints}
 
-Requirements for Test Cases:
-1. Visible Test Cases: Generate 2 to 5 standard test cases that help the student understand the problem (examples).
-2. Hidden Test Cases: Generate 10 to 30 hidden test cases that rigorously test the solution. You MUST include:
+Requirements:
+1. "input_format": A clear description of how input is structured (e.g., "First line contains N. Second line contains N space-separated integers."). This guides students on how stdin will be provided to their program.
+2. "output_format": A clear description of what the program should print (e.g., "Print a single integer — the maximum sum."). This guides students on what their program should output to stdout.
+3. "reference_solution": A complete, correct Python solution that reads from stdin and prints to stdout. This solution MUST be fully working and produce the correct output for every test case you generate. Do NOT use any external libraries. Use only standard Python.
+4. "test_cases": 2 to 5 visible test cases (examples) as objects with "input" and "output" string fields.
+5. "hidden_test_cases": 10 to 30 hidden test cases that rigorously test the solution, including:
    - Edge cases (minimum/maximum possible values, empty/single elements).
-   - Worst-case scenarios designed to trigger Time Limit Exceeded (TLE). These MUST strictly use the absolute maximum bounds provided in the constraints.
-   - Large input scenarios designed to trigger Memory Limit Exceeded (MLE) if the solution uses excessive memory, based on the maximum constraints.
-   - Tricky variants (e.g., negative numbers, all duplicates, strictly increasing/decreasing) depending on the problem.
+   - Worst-case scenarios for TLE using maximum constraints.
+   - Tricky variants (e.g., negative numbers, all duplicates, strictly increasing/decreasing).
+
+CRITICAL: The "output" field of every test case MUST exactly match the output produced by your reference_solution when given the corresponding "input" via stdin.
 
 Return ONLY valid JSON in this exact format:
 {{
+  "input_format": "...",
+  "output_format": "...",
+  "reference_solution": "...",
   "test_cases": [{{"input": "...", "output": "..."}}],
   "hidden_test_cases": [{{"input": "...", "output": "..."}}]
 }}"""
@@ -352,6 +401,25 @@ Return ONLY valid JSON in this exact format:
                     parsed_json = json.loads(match.group(0))
                 else:
                     return Response({"error": "Could not parse JSON from AI response", "raw": cleaned_text[:500]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Validate test cases using the reference solution
+            ref_code = parsed_json.get("reference_solution", "")
+            total_discarded = 0
+
+            if ref_code:
+                visible, d1 = self._validate_test_cases(parsed_json.get("test_cases", []), ref_code)
+                hidden, d2 = self._validate_test_cases(parsed_json.get("hidden_test_cases", []), ref_code)
+                total_discarded = d1 + d2
+                parsed_json["test_cases"] = visible
+                parsed_json["hidden_test_cases"] = hidden
+
+            parsed_json["validation_info"] = {
+                "discarded_count": total_discarded,
+                "validated": bool(ref_code),
+            }
+
+            # Remove reference_solution from response (no need to send to frontend)
+            parsed_json.pop("reference_solution", None)
             
             return Response(parsed_json)
         except Exception as e:

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getAllTests } from '../../services/testService';
+import { getAllTests, startTest } from '../../services/testService';
 import styles from './StartExam.module.css';
 
 const StartExam = () => {
@@ -32,18 +32,14 @@ const StartExam = () => {
     setError(null);
 
     try {
-      const duration = 60; // Default or fetch from test if needed
+      const data = await startTest();
+      const duration = data.duration_minutes || 60;
 
-      // Store test state in localStorage
       localStorage.setItem('exam_active', 'true');
       localStorage.setItem('exam_duration', duration.toString());
       const endTime = Date.now() + duration * 60 * 1000;
       localStorage.setItem('exam_end_time', endTime.toString());
-
-      // Store the test ID captured during mount (no second network call needed)
-      if (testId) {
-        localStorage.setItem('exam_test_id', testId);
-      }
+      localStorage.setItem('exam_test_id', String(data.id));
 
       navigate('/student/tests');
     } catch (err) {

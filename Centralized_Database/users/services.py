@@ -3,6 +3,7 @@ from .models import User
 
 
 def create_teacher(username: str, password: str):
+    username = username.lower()
 
     if User.objects.filter(username=username).exists():
         return None
@@ -17,6 +18,7 @@ def create_teacher(username: str, password: str):
 
 
 def create_student(roll_number: str):
+    roll_number = roll_number.upper()
 
     if User.objects.filter(username=roll_number).exists():
         return None

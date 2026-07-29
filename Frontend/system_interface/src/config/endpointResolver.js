@@ -29,6 +29,7 @@ export const endpoints = {
   activeTest: () => `${central()}/api/tests/active/`,
   submitTest: () => `${central()}/api/tests/submit/`,
   questions: () => `${central()}/api/questions/`,
+  startTest: () => `${central()}/api/questions/start_test/`,
   questionById: (id) => `${central()}/api/questions/${id}/`,
   aiGenerateTestCases: () => `${central()}/api/ai/generate/`,
 
