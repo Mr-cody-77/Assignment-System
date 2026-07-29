@@ -95,7 +95,7 @@ const StudentDashboard = () => {
             </div>
           ) : (
             <div className={styles.statsGrid}>
-              <StatCard label="Available Assignments" value={assignments.length} icon="📝" color="#6366f1" />
+              <StatCard label="Total Tests Attempted" value={submittedTestIds.length} icon="📝" color="#6366f1" />
               <StatCard label="Submitted" value={taskCounts.submitted} icon="✅" color="#10b981" />
               <StatCard label="Pending Tasks" value={taskCounts.pending} icon="⏳" color="#f59e0b" />
               <StatCard label="Running" value={taskCounts.running} icon="⚡" color="#3b82f6" />

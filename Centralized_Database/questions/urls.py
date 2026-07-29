@@ -18,6 +18,10 @@ urlpatterns = [
     # Question endpoints
     path('questions/', QuestionListView.as_view(), name='question-list'),
     path('questions/<int:question_id>/', QuestionDetailView.as_view(), name='question-detail'),
+    
+    # Legacy alias for older student laptops that haven't updated their frontend code
+    path('questions/start_test/', StartTestView.as_view(), name='test-start-legacy'),
+
     path('ai/generate/', AITestCaseGeneratorView.as_view(), name='ai-generate'),
     path('schedule/', LockdownScheduleView.as_view(), name='schedule'),
 ]

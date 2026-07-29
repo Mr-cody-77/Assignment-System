@@ -7,6 +7,7 @@ import Header from '../../components/Header/Header';
 import EmptyState from '../../components/common/EmptyState';
 import { SkeletonCard } from '../../components/Loader/SkeletonLoader';
 import { getTestById, submitTest } from '../../services/testService';
+import { submitTask, getTaskStatus } from '../../services/taskService';
 import { getMyResults } from '../../services/resultService';
 import Timer from '../../components/Timer/Timer';
 import styles from './Assignments.module.css';
@@ -396,6 +397,59 @@ const TestQuestions = () => {
     setSubmitting(true);
 
     const testId = localStorage.getItem('exam_test_id') || (test && test.id);
+
+    /* 0. Auto-submit any cached code that hasn't been evaluated yet */
+    if (test && test.questions && user?.username) {
+      const buildSubmitQuestion = (q) => {
+        const visible = Array.isArray(q?.test_cases) ? q.test_cases : [];
+        const hidden = Array.isArray(q?.hidden_test_cases) ? q.hidden_test_cases : [];
+        const totalCases = Math.max(visible.length + hidden.length, 1);
+        const normalize = (cases, startIdx) => cases.map((c, i) => ({
+          ...c, order: startIdx + i + 1, points: Number(c.points) || Number((100/totalCases).toFixed(4))
+        }));
+        return {
+          ...q,
+          max_score: q.marks || q.max_score || 100,
+          time_limit_ms: q.time_limit_ms || 2000,
+          memory_limit_mb: q.memory_limit_mb || 256,
+          test_cases: normalize(visible, 0),
+          hidden_test_cases: normalize(hidden, visible.length),
+        };
+      };
+
+      for (const q of test.questions) {
+        const cachedCode = localStorage.getItem(`code_cache_${q.id}`);
+        // We will just submit the cached code for all questions, 
+        // the backend logic handles overriding/processing them correctly.
+        if (cachedCode) {
+          try {
+            await submitTask({
+              roll_number: user.username,
+              question: buildSubmitQuestion(q),
+              language: 'python', // Default to python if language not cached
+              solution: cachedCode,
+            });
+          } catch (err) {
+            console.error(`Failed to auto-submit code for Q${q.id}:`, err);
+          }
+        }
+      }
+
+      // Poll until all auto-submitted tasks finish or timeout after 10s
+      try {
+        for (let i = 0; i < 10; i++) {
+          const statuses = await getTaskStatus();
+          const pending = statuses.filter(t => 
+            t.roll_number === user?.username && 
+            ['pending', 'queued', 'running'].includes(t.status?.toLowerCase())
+          );
+          if (pending.length === 0) break;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      } catch (err) {
+        console.error("Error polling task status:", err);
+      }
+    }
 
     /* 1. Submit the test record */
     try {

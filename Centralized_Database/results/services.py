@@ -2,14 +2,17 @@ from .models import Result
 
 
 def store_result(student, data):
-    return Result.objects.create(
+    result, created = Result.objects.update_or_create(
         student=student,
-        roll_number=data['roll_number'],
         question_id=data['question_id'],
-        status=data['status'],
-        score=data['score'],
-        passed_testcases=data.get('passed_testcases', 0),
-        total_testcases=data.get('total_testcases', 0),
-        execution_time=data.get('execution_time', 0),
+        defaults={
+            'roll_number': data['roll_number'],
+            'status': data['status'],
+            'score': data['score'],
+            'passed_testcases': data.get('passed_testcases', 0),
+            'total_testcases': data.get('total_testcases', 0),
+            'execution_time': data.get('execution_time', 0),
+        }
     )
+    return result
 

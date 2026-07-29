@@ -105,6 +105,14 @@ const AssignmentDetails = () => {
     fetch();
   }, [id, examActive, navigate]);
 
+  // Sync the code editor when the question ID changes
+  useEffect(() => {
+    const cached = localStorage.getItem(`code_cache_${id}`);
+    setCode(cached || TEMPLATES[language] || TEMPLATES.python);
+    setTerminalResults(null);
+    setSubmittedTaskId(null);
+  }, [id]);
+
   const handleCodeChange = (newCode) => {
     setCode(newCode);
     localStorage.setItem(`code_cache_${id}`, newCode);
