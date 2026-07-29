@@ -29,12 +29,13 @@ export const endpoints = {
   activeTest: () => `${central()}/api/tests/active/`,
   submitTest: () => `${central()}/api/tests/submit/`,
   questions: () => `${central()}/api/questions/`,
-  startTest: () => `${central()}/api/questions/start_test/`,
+  startTest: () => `${central()}/api/tests/start/`,
   questionById: (id) => `${central()}/api/questions/${id}/`,
   aiGenerateTestCases: () => `${central()}/api/ai/generate/`,
 
   // ── Results (Central Server) ─────────────────────────────
   results: () => `${central()}/api/results/result/`,
+  codeHistory: () => `${central()}/api/results/code-history/`,
 
   // ── Schedule (Central Server) ────────────────────────────
   schedule: () => `${central()}/api/schedule/`,

@@ -116,3 +116,17 @@ class PlagiarismDetected(models.Model):
             f"~ {self.copied_from_student_roll} "
             f"(Q{self.question_id}, {self.similarity_score:.0%})"
         )
+
+
+class CodeSubmissionHistory(models.Model):
+    roll_number = models.CharField(max_length=100)
+    question_id = models.CharField(max_length=100)
+    language = models.CharField(max_length=100)
+    code = models.TextField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.roll_number} - {self.question_id} - {self.submitted_at}"

@@ -5,7 +5,6 @@ const EditTestModal = ({ test, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     name: test.name || '',
     duration_minutes: test.duration_minutes || 60,
-    admin_password: ''
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -26,8 +25,6 @@ const EditTestModal = ({ test, onClose, onUpdate }) => {
         const payload = {
             name: formData.name,
             duration_minutes: parseInt(formData.duration_minutes, 10),
-            // Only send password if it's changed
-            ...(formData.admin_password ? { admin_password: formData.admin_password } : {})
         };
         await updateTest(test.id, payload);
         onUpdate();
@@ -73,18 +70,6 @@ const EditTestModal = ({ test, onClose, onUpdate }) => {
                 onChange={handleChange}
                 min="1"
                 required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Admin ACU Password</label>
-            <input 
-                type="text" 
-                className="input-field" 
-                name="admin_password"
-                value={formData.admin_password}
-                onChange={handleChange}
-                placeholder="Leave blank to keep unchanged"
             />
           </div>
 

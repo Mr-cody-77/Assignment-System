@@ -10,6 +10,8 @@ const emptyTestCase = () => ({ input: '', output: '' });
 const emptyQuestion = () => ({
   title: '',
   description: '',
+  input_format: '',
+  output_format: '',
   constraints: '',
   marks: 10,
   test_cases: [emptyTestCase()],
@@ -24,7 +26,6 @@ const CreateTest = () => {
 
   const [testName, setTestName] = useState('');
   const [duration, setDuration] = useState(60);
-  const [adminPassword, setAdminPassword] = useState('');
   const [questions, setQuestions] = useState([emptyQuestion()]);
 
   // Question helpers
@@ -77,6 +78,8 @@ const CreateTest = () => {
           if (idx !== qIndex) return item;
           return {
             ...item,
+            input_format: data.input_format || item.input_format,
+            output_format: data.output_format || item.output_format,
             test_cases: data.test_cases?.length ? data.test_cases.map(tc => ({ input: String(tc.input), output: String(tc.output) })) : item.test_cases,
             hidden_test_cases: data.hidden_test_cases?.length ? data.hidden_test_cases.map(tc => ({ input: String(tc.input), output: String(tc.output) })) : item.hidden_test_cases
           };
@@ -95,8 +98,8 @@ const CreateTest = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!testName.trim() || !adminPassword.trim()) {
-      addToast('Test name and admin password are required.', 'warning');
+    if (!testName.trim()) {
+      addToast('Test name is required.', 'warning');
       return;
     }
     setLoading(true);
@@ -106,18 +109,19 @@ const CreateTest = () => {
         ...q,
         test_cases: q.test_cases.filter(tc => tc.input.trim()),
         hidden_test_cases: q.hidden_test_cases.filter(tc => tc.input.trim()),
+        input_format: q.input_format?.trim() || '',
+        output_format: q.output_format?.trim() || '',
         constraints: q.constraints?.trim() || '',
       }));
 
       await createTest({
         name: testName.trim(),
         duration_minutes: duration,
-        admin_password: adminPassword,
         questions: cleanedQuestions,
       });
       addToast('Test created successfully!', 'success');
       // Reset
-      setTestName(''); setDuration(60); setAdminPassword('');
+      setTestName(''); setDuration(60);
       setQuestions([emptyQuestion()]);
     } catch (err) {
       addToast(err?.response?.data?.message || 'Failed to create test.', 'error');
@@ -165,17 +169,6 @@ const CreateTest = () => {
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Admin Password (UAC) *</label>
-                  <input
-                    className="form-input"
-                    type="password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="Windows admin password"
-                    required
-                  />
-                </div>
               </div>
             </div>
 
@@ -212,6 +205,28 @@ const CreateTest = () => {
                     placeholder="Describe the problem clearly…"
                     rows={4}
                     required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Input Format</label>
+                  <textarea
+                    className="form-textarea"
+                    value={q.input_format}
+                    onChange={(e) => updateQuestion(qIndex, 'input_format', e.target.value)}
+                    placeholder="Describe how the input is formatted..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Output Format</label>
+                  <textarea
+                    className="form-textarea"
+                    value={q.output_format}
+                    onChange={(e) => updateQuestion(qIndex, 'output_format', e.target.value)}
+                    placeholder="Describe what the program should print..."
+                    rows={2}
                   />
                 </div>
 

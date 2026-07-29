@@ -12,6 +12,7 @@ const TEACHER_NAV = [
   { to: '/teacher/analytics', icon: 'AN', label: 'Analytics' },
   { to: '/teacher/nodes', icon: 'ND', label: 'Node Connections' },
   { to: '/teacher/add-user', icon: 'US', label: 'Add User' },
+  { to: '/teacher/code-review', icon: 'CR', label: 'Code Review' },
 ];
 
 const STUDENT_NAV = [

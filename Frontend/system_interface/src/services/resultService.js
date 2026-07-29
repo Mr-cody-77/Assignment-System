@@ -29,3 +29,15 @@ export const getMyResults = async (roll_number) => {
   const res = await centralRequest.post(endpoints.results(), { roll_number });
   return res.data;
 };
+
+export const getCodeHistory = async (roll_number = null, question_id = null) => {
+  const params = new URLSearchParams();
+  if (roll_number) params.append('roll_number', roll_number);
+  if (question_id) params.append('question_id', question_id);
+  
+  const queryString = params.toString();
+  const url = queryString ? `${endpoints.codeHistory()}?${queryString}` : endpoints.codeHistory();
+  
+  const res = await centralRequest.get(url);
+  return res.data;
+};

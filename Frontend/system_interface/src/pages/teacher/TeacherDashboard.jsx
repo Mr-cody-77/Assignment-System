@@ -97,6 +97,7 @@ const TeacherDashboard = () => {
     { icon: '📊', label: 'View Results', desc: 'See all student submissions', path: '/teacher/results', color: '#10b981' },
     { icon: '🖥️', label: 'Node Monitor', desc: 'Monitor computing nodes', path: '/teacher/nodes', color: '#3b82f6' },
     { icon: '👤', label: 'Add User', desc: 'Add students or teachers', path: '/teacher/add-user', color: '#f59e0b' },
+    { icon: '🔍', label: 'Code Review', desc: 'Review student code', path: '/teacher/code-review', color: '#8b5cf6' },
   ];
 
   return (

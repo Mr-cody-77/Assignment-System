@@ -3,7 +3,6 @@ from django.db import models
 class Test(models.Model):
     name = models.CharField(max_length=255)
     duration_minutes = models.IntegerField(default=60)
-    admin_password = models.CharField(max_length=500)
     is_live = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         'users.User',

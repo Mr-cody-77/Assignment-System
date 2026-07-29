@@ -16,6 +16,16 @@ class CaseInsensitiveBackend:
 
         if user.check_password(password):
             return user
+            
+        # Fallback for students created before the case-insensitive update:
+        # Since their password is their roll number, it might have been hashed 
+        # as uppercase or lowercase. Try both variants.
+        if getattr(user, 'role', '') == 'student':
+            if user.check_password(password.upper()):
+                return user
+            if user.check_password(password.lower()):
+                return user
+                
         return None
 
     def get_user(self, user_id):

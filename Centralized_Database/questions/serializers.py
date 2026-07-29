@@ -42,7 +42,7 @@ class TestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Test
         fields = (
-            'id', 'name', 'duration_minutes', 'admin_password', 
+            'id', 'name', 'duration_minutes', 
             'is_live', 'created_by', 'created_at', 'updated_at', 'questions'
         )
         read_only_fields = ('id', 'created_at', 'updated_at')

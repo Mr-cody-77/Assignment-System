@@ -30,14 +30,9 @@ class CreateTestView(APIView):
         if is_live:
             Test.objects.update(is_live=False)
 
-        admin_password = data.get("admin_password", "")
-        if not admin_password:
-             return Response({"error": "Admin password required"}, status=status.HTTP_400_BAD_REQUEST)
-
         test = Test.objects.create(
             name=data.get("name", "Unnamed Test"),
             duration_minutes=int(data.get("duration_minutes", 60)),
-            admin_password=xor_encrypt(admin_password),
             is_live=is_live,
             created_by=request.user
         )
@@ -104,12 +99,11 @@ class TestDetailView(APIView):
             test.name = data["name"]
         if "duration_minutes" in data:
             test.duration_minutes = int(data["duration_minutes"])
-        if "admin_password" in data and data["admin_password"]:
-            test.admin_password = xor_encrypt(data["admin_password"])
             
         test.save()
-        # Reset test attempts if the test is modified
+        # Reset test attempts and submissions if the test is modified
         TestAttempt.objects.filter(test=test).delete()
+        TestSubmission.objects.filter(test=test).delete()
         return Response(TestSerializer(test, context={'request': request}).data)
 
 class TestToggleLiveView(APIView):
@@ -217,8 +211,9 @@ class QuestionListView(APIView):
         except Test.DoesNotExist:
             return Response({"error": "Test not found"}, status=status.HTTP_404_NOT_FOUND)
             
-        # Reset test attempts if a new question is added
+        # Reset test attempts and submissions if a new question is added
         TestAttempt.objects.filter(test=test).delete()
+        TestSubmission.objects.filter(test=test).delete()
             
         q = Question.objects.create(
             test=test,
@@ -257,8 +252,9 @@ class QuestionDetailView(APIView):
         except Question.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
             
-        # Reset test attempts if a question is modified
+        # Reset test attempts and submissions if a question is modified
         TestAttempt.objects.filter(test=q.test).delete()
+        TestSubmission.objects.filter(test=q.test).delete()
             
         data = request.data
         if "title" in data:
@@ -370,7 +366,6 @@ Return ONLY valid JSON in this exact format:
   "hidden_test_cases": [{{"input": "...", "output": "..."}}]
 }}"""
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -378,11 +373,33 @@ Return ONLY valid JSON in this exact format:
             }
         }
         
-        try:
-            response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=115)
-            if not response.ok:
-                return Response({"error": f"LLM API error: {response.status_code} — {response.text[:300]}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        models_to_try = [
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.5-flash-lite"
+        ]
+        
+        response = None
+        last_error = ""
+        
+        for model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            try:
+                resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=115)
+                if resp.ok:
+                    response = resp
+                    break
+                else:
+                    last_error = f"{resp.status_code} - {resp.text[:300]}"
+                    continue
+            except Exception as e:
+                last_error = str(e)
+                continue
+                
+        if not response:
+            return Response({"error": f"LLM API error: All fallback models failed. Last error: {last_error}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
+        try:
             result_data = response.json()
             text_content = result_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
             

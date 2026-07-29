@@ -16,6 +16,7 @@ import StudentResults from '../pages/teacher/StudentResults';
 import TeacherNodeConnections from '../pages/teacher/TeacherNodeConnections';
 import AddUser from '../pages/teacher/AddUser';
 import AnalyticsPage from '../pages/teacher/AnalyticsPage';
+import CodeReview from '../pages/teacher/CodeReview';
 
 // Student pages
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
@@ -96,6 +97,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requiredRole="teacher">
             <AddUser />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/code-review"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <CodeReview />
           </ProtectedRoute>
         }
       />

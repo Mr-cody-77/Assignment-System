@@ -92,11 +92,12 @@ def get_results(request):
 import os
 import logging
 
-from .models import SubmittedSolution, SolutionFingerprint, PlagiarismDetected
+from .models import SubmittedSolution, SolutionFingerprint, PlagiarismDetected, CodeSubmissionHistory
 from .serializers import (
     SolutionIngestSerializer,
     PlagiarismDetectedTeacherSerializer,
     PlagiarismDetectedStudentSerializer,
+    CodeSubmissionHistorySerializer,
 )
 from .plagiarism_engine import build_fingerprint, jaccard_similarity
 
@@ -150,6 +151,13 @@ def plagiarism_ingest(request):
             "language": language,
             "code": code,
         },
+    )
+
+    CodeSubmissionHistory.objects.create(
+        roll_number=roll_number,
+        question_id=question_id,
+        language=language,
+        code=code,
     )
 
     # ── b) Generate fingerprint ───────────────────────────────────────────────
@@ -248,3 +256,22 @@ def plagiarism_student_view(request):
     serializer = PlagiarismDetectedStudentSerializer(queryset, many=True)
     return Response(serializer.data)
 
+
+@api_view(['GET'])
+@permission_classes([IsTeacher])
+def code_history_view(request):
+    """
+    Teacher-only: returns the history of code submissions.
+    Filter by roll_number and question_id if provided.
+    """
+    roll_number = request.query_params.get('roll_number')
+    question_id = request.query_params.get('question_id')
+    
+    queryset = CodeSubmissionHistory.objects.all()
+    if roll_number:
+        queryset = queryset.filter(roll_number=roll_number)
+    if question_id:
+        queryset = queryset.filter(question_id=question_id)
+        
+    serializer = CodeSubmissionHistorySerializer(queryset, many=True)
+    return Response(serializer.data)

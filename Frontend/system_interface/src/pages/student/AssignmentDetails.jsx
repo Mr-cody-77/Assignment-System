@@ -54,7 +54,10 @@ const AssignmentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [code, setCode] = useState(TEMPLATES.python);
+  const [code, setCode] = useState(() => {
+    const cached = localStorage.getItem(`code_cache_${id}`);
+    return cached || TEMPLATES.python;
+  });
   const [language, setLanguage] = useState('python');
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [activeTab, setActiveTab] = useState('description');
@@ -102,11 +105,18 @@ const AssignmentDetails = () => {
     fetch();
   }, [id, examActive, navigate]);
 
+  const handleCodeChange = (newCode) => {
+    setCode(newCode);
+    localStorage.setItem(`code_cache_${id}`, newCode);
+  };
+
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
     // Apply template if code is empty or is still a template
     if (!code || Object.values(TEMPLATES).includes(code)) {
-      setCode(TEMPLATES[lang] || '');
+      const templateCode = TEMPLATES[lang] || '';
+      setCode(templateCode);
+      localStorage.setItem(`code_cache_${id}`, templateCode);
     }
   };
 
@@ -350,7 +360,7 @@ const AssignmentDetails = () => {
             <div className="editor-container">
               <CodeEditor
                 value={code}
-                onChange={setCode}
+                onChange={handleCodeChange}
                 language={language}
                 onLanguageChange={handleLanguageChange}
                 theme={editorTheme}

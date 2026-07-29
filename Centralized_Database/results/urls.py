@@ -10,6 +10,7 @@ from .views import (
     plagiarism_ingest,
     plagiarism_teacher_view,
     plagiarism_student_view,
+    code_history_view,
 )
 
 urlpatterns = [
@@ -22,4 +23,5 @@ urlpatterns = [
     path('plagiarism/ingest/', plagiarism_ingest),
     path('plagiarism/teacher/', plagiarism_teacher_view),
     path('plagiarism/student/', plagiarism_student_view),
+    path('code-history/', code_history_view),
 ]

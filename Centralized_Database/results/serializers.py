@@ -94,3 +94,12 @@ class PlagiarismDetectedStudentSerializer(serializers.ModelSerializer):
             'similarity_score',
             'detected_at',
         ]
+
+
+from .models import CodeSubmissionHistory
+
+class CodeSubmissionHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CodeSubmissionHistory
+        fields = ['id', 'roll_number', 'question_id', 'language', 'code', 'submitted_at']
+

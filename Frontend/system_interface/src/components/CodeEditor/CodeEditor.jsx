@@ -30,23 +30,24 @@ const CodeEditor = ({
   theme = 'vs-dark',
   onThemeChange,
   height = '100%',
+  readOnly = false,
 }) => {
   const [fullscreen, setFullscreen] = useState(false);
   const monacoLang = LANGUAGES.find((l) => l.value === language)?.monaco || 'python';
 
   // When language changes externally and code is empty/template, load new template
   useEffect(() => {
-    if (!value || Object.values(TEMPLATES).includes(value)) {
+    if (!readOnly && (!value || Object.values(TEMPLATES).includes(value))) {
       onChange?.(TEMPLATES[language] || '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language]);
+  }, [language, readOnly]);
 
   const handleLangChange = (e) => {
     const lang = e.target.value;
     onLanguageChange?.(lang);
     // Only apply template if current code is empty or is a known template
-    if (!value || Object.values(TEMPLATES).includes(value)) {
+    if (!readOnly && (!value || Object.values(TEMPLATES).includes(value))) {
       onChange?.(TEMPLATES[lang] || '');
     }
   };
@@ -57,16 +58,23 @@ const CodeEditor = ({
     <div className={container} style={fullscreen ? {} : { height }}>
       {/* Toolbar */}
       <div className={styles.toolbar}>
-        <select
-          className={styles.select}
-          value={language}
-          onChange={handleLangChange}
-          aria-label="Select language"
-        >
-          {LANGUAGES.map((l) => (
-            <option key={l.value} value={l.value}>{l.label}</option>
-          ))}
-        </select>
+        {onLanguageChange ? (
+          <select
+            className={styles.select}
+            value={language}
+            onChange={handleLangChange}
+            aria-label="Select language"
+            disabled={readOnly}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.value} value={l.value}>{l.label}</option>
+            ))}
+          </select>
+        ) : (
+          <div style={{ color: 'var(--clr-text-2)', fontSize: '14px', fontWeight: 'bold' }}>
+            {LANGUAGES.find(l => l.value === language)?.label || language}
+          </div>
+        )}
 
         <select
           className={styles.select}
@@ -95,8 +103,11 @@ const CodeEditor = ({
           language={monacoLang}
           theme={theme}
           value={value}
-          onChange={(v) => onChange?.(v || '')}
+          onChange={(v) => {
+            if (!readOnly) onChange?.(v || '');
+          }}
           options={{
+            readOnly: readOnly,
             fontSize: 14,
             minimap: { enabled: false },
             lineNumbers: 'on',
@@ -108,7 +119,7 @@ const CodeEditor = ({
             cursorBlinking: 'smooth',
             smoothScrolling: true,
             fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            fontLigatures: true,
+            fontLigatures: false,
           }}
         />
       </div>
