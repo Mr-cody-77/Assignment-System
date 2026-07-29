@@ -11,7 +11,6 @@ import { getAssignmentById } from '../../services/assignmentService';
 import { submitTask } from '../../services/taskService';
 import { runVisibleTestCases } from '../../services/localExecutionService';
 import Timer from '../../components/Timer/Timer';
-import { stopLockdown } from '../../services/lockdownService';
 import { submitTest } from '../../services/testService';
 import styles from './AssignmentDetails.module.css';
 
@@ -77,11 +76,6 @@ const AssignmentDetails = () => {
       }
     } catch (err) {
       console.error('Failed to submit test:', err);
-    }
-    try {
-      await stopLockdown();
-    } catch (err) {
-      console.error('Failed to unlock ports:', err);
     }
     localStorage.removeItem('exam_active');
     localStorage.removeItem('exam_duration');

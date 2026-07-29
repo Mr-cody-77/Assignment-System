@@ -8,7 +8,6 @@ import EmptyState from '../../components/common/EmptyState';
 import { SkeletonCard } from '../../components/Loader/SkeletonLoader';
 import { getTestById, submitTest } from '../../services/testService';
 import { getMyResults } from '../../services/resultService';
-import { stopLockdown } from '../../services/lockdownService';
 import Timer from '../../components/Timer/Timer';
 import styles from './Assignments.module.css';
 
@@ -405,13 +404,6 @@ const TestQuestions = () => {
     } catch (err) {
       console.error('Failed to submit test:', err);
       /* Non-blocking — still proceed to show results */
-    }
-
-    /* 2. Stop lockdown */
-    try {
-      await stopLockdown();
-    } catch (err) {
-      console.error('Failed to unlock ports:', err);
     }
 
     /* 3. Fetch per-question results from Centralized DB */

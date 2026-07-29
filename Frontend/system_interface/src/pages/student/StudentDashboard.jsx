@@ -10,7 +10,6 @@ import { getAllAssignments } from '../../services/assignmentService';
 import { getTaskStatus } from '../../services/taskService';
 import { getAllTests } from '../../services/testService';
 import Timer from '../../components/Timer/Timer';
-import { stopLockdown } from '../../services/lockdownService';
 import styles from './StudentDashboard.module.css';
 
 const StudentDashboard = () => {
@@ -26,11 +25,6 @@ const StudentDashboard = () => {
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
 
   const handleExamEnd = async () => {
-    try {
-      await stopLockdown();
-    } catch (err) {
-      console.error('Failed to unlock ports:', err);
-    }
     localStorage.removeItem('exam_active');
     localStorage.removeItem('exam_duration');
     localStorage.removeItem('exam_end_time');

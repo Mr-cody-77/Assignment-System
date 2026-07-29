@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getAllTests } from '../../services/testService';
-import { stopLockdown } from '../../services/lockdownService';
 import styles from './Sidebar.module.css';
 
 const TEACHER_NAV = [
@@ -46,11 +45,6 @@ const Sidebar = ({ role, isOpen, onClose }) => {
 
   const handleLogout = async () => {
     if (examActive) {
-      try {
-        await stopLockdown();
-      } catch (err) {
-        console.error('Failed to unlock ports:', err);
-      }
       localStorage.removeItem('exam_active');
       localStorage.removeItem('exam_duration');
       localStorage.removeItem('exam_end_time');

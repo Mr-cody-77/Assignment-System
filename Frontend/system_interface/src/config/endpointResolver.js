@@ -35,6 +35,9 @@ export const endpoints = {
   // ── Results (Central Server) ─────────────────────────────
   results: () => `${central()}/api/results/result/`,
 
+  // ── Schedule (Central Server) ────────────────────────────
+  schedule: () => `${central()}/api/schedule/`,
+
   // ── Tasks (Backend Node Server — relative URLs) ──────────
   submitTask: () =>
     `${runtimeConfig.getBackendURL()}/api/task/`,

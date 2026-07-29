@@ -74,3 +74,13 @@ class TestSubmission(models.Model):
 
     def __str__(self):
         return f"{self.student.username} submitted {self.test.name}"
+
+class LockdownSchedule(models.Model):
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Lockdown from {self.start_time} to {self.end_time} (Active: {self.is_active})"

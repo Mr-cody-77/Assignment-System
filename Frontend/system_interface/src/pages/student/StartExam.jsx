@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { startLockdown } from '../../services/lockdownService';
 import { getAllTests } from '../../services/testService';
 import styles from './StartExam.module.css';
 
@@ -33,8 +32,7 @@ const StartExam = () => {
     setError(null);
 
     try {
-      const result = await startLockdown();
-      const duration = result.duration_minutes || 60;
+      const duration = 60; // Default or fetch from test if needed
 
       // Store test state in localStorage
       localStorage.setItem('exam_active', 'true');

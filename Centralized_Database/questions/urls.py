@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     CreateTestView, TestListView, TestDetailView, TestToggleLiveView, ActiveTestConfigView,
-    StartTestView, SubmitTestView, QuestionListView, QuestionDetailView, AITestCaseGeneratorView
+    StartTestView, SubmitTestView, QuestionListView, QuestionDetailView, AITestCaseGeneratorView,
+    LockdownScheduleView
 )
 
 urlpatterns = [
@@ -18,4 +19,5 @@ urlpatterns = [
     path('questions/', QuestionListView.as_view(), name='question-list'),
     path('questions/<int:question_id>/', QuestionDetailView.as_view(), name='question-detail'),
     path('ai/generate/', AITestCaseGeneratorView.as_view(), name='ai-generate'),
+    path('schedule/', LockdownScheduleView.as_view(), name='schedule'),
 ]

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from .models import Test, Question, TestCase, HiddenTestCase, TestAttempt, TestSubmission
+from .models import Test, Question, TestCase, HiddenTestCase, TestAttempt, TestSubmission, LockdownSchedule
 from .serializers import TestSerializer, QuestionSerializer
 
 EXAM_CIPHER_KEY = "SystemSecureExamKey77!"
@@ -356,3 +356,47 @@ Return ONLY valid JSON in this exact format:
             return Response(parsed_json)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class LockdownScheduleView(APIView):
+    # No permission_classes at class level; GET is public for daemon
+
+    def get(self, request):
+        schedule = LockdownSchedule.objects.filter(is_active=True).order_by('-created_at').first()
+        if not schedule:
+            return Response({"schedule": None})
+        return Response({
+            "schedule": {
+                "start_time": schedule.start_time,
+                "end_time": schedule.end_time,
+                "is_active": schedule.is_active
+            }
+        })
+
+    def post(self, request):
+        if not request.user or not request.user.is_authenticated or getattr(request.user, 'role', None) != 'teacher':
+            return Response({"error": "Only teachers can set schedule"}, status=status.HTTP_403_FORBIDDEN)
+        
+        data = request.data
+        start_time = data.get("start_time")
+        end_time = data.get("end_time")
+        is_active = data.get("is_active", True)
+        
+        if not start_time or not end_time:
+            return Response({"error": "start_time and end_time are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        schedule = LockdownSchedule.objects.create(
+            start_time=start_time,
+            end_time=end_time,
+            is_active=is_active
+        )
+        
+        # Deactivate old schedules
+        LockdownSchedule.objects.exclude(id=schedule.id).update(is_active=False)
+        
+        return Response({
+            "schedule": {
+                "start_time": schedule.start_time,
+                "end_time": schedule.end_time,
+                "is_active": schedule.is_active
+            }
+        }, status=status.HTTP_201_CREATED)
