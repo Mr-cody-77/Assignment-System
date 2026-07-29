@@ -16,7 +16,48 @@ logging.basicConfig(
 )
 
 # Configuration
-CENTRAL_DB_URL = "http://localhost:8000/api/schedule/" 
+db_server_ip = None
+db_server_port = '8000'
+
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+if os.path.exists(env_path):
+    with open(env_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('DATABASE_SERVER_IP='):
+                db_server_ip = line.split('=', 1)[1].strip()
+            elif line.startswith('DATABASE_SERVER_PORT='):
+                db_server_port = line.split('=', 1)[1].strip()
+
+# Zeroconf Discovery Fallback
+discovered_db_url = None
+try:
+    from zeroconf import Zeroconf, ServiceBrowser
+    import socket
+    
+    class DBListener:
+        def add_service(self, zc, type_, name):
+            global discovered_db_url
+            info = zc.get_service_info(type_, name)
+            if info and info.addresses:
+                ip = socket.inet_ntoa(info.addresses[0])
+                port = info.port
+                props = {
+                    (k.decode() if isinstance(k, bytes) else k):
+                    (v.decode() if isinstance(v, bytes) else v)
+                    for k, v in (info.properties or {}).items()
+                }
+                if props.get("role", "") == "database":
+                    discovered_db_url = f"http://{ip}:{port}/api/schedule/"
+                    logging.info(f"Discovered DB server via Zeroconf at {ip}:{port}")
+        def update_service(self, zc, type_, name): pass
+        def remove_service(self, zc, type_, name): pass
+
+    zc = Zeroconf()
+    ServiceBrowser(zc, "_assignsysdb._tcp.local.", DBListener())
+except Exception as e:
+    logging.warning(f"Zeroconf discovery unavailable: {e}")
+
 POLL_INTERVAL = 30 # seconds
 CACHE_FILE = 'schedule_cache.json'
 
@@ -96,8 +137,17 @@ def main():
     
     while True:
         schedule = None
+        
+        target_url = None
+        if db_server_ip:
+            target_url = f"http://{db_server_ip}:{db_server_port}/api/schedule/"
+        elif discovered_db_url:
+            target_url = discovered_db_url
+        else:
+            target_url = "http://localhost:8000/api/schedule/"
+            
         try:
-            response = requests.get(CENTRAL_DB_URL, timeout=10)
+            response = requests.get(target_url, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 schedule = data.get('schedule')

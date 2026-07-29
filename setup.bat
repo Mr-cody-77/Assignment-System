@@ -15,22 +15,37 @@ if %errorLevel% == 0 (
 )
 
 :: Check for Python
+set PYTHON_CMD=
 python --version >nul 2>&1
-if %errorLevel% neq 0 (
-    echo [ERROR] Python is not installed or not in PATH. Please install Python.
+if %errorLevel% == 0 set PYTHON_CMD=python
+
+if "%PYTHON_CMD%"=="" (
+    py --version >nul 2>&1
+    if %errorLevel% == 0 set PYTHON_CMD=py
+)
+
+if "%PYTHON_CMD%"=="" (
+    python3 --version >nul 2>&1
+    if %errorLevel% == 0 set PYTHON_CMD=python3
+)
+
+if "%PYTHON_CMD%"=="" (
+    echo [ERROR] Python is not installed, or not in the Administrator PATH.
+    echo TIP: If you just installed Python, try restarting your PC.
+    echo TIP: Make sure you checked "Add Python to PATH" AND "Install for all users" during installation.
     pause
     exit /b 1
 )
-echo [OK] Python found.
+echo [OK] Python found using command: %PYTHON_CMD%
 
 :: Check for Node.js (npm)
 npm --version >nul 2>&1
 if %errorLevel% neq 0 (
-    echo [ERROR] Node.js (npm) is not installed or not in PATH. Please install Node.js.
+    echo [ERROR] Node.js or npm is not installed or not in PATH. Please install Node.js.
     pause
     exit /b 1
 )
-echo [OK] Node.js (npm) found.
+echo [OK] Node.js and npm found.
 
 :: Get current directory
 set SCRIPT_DIR=%~dp0
@@ -39,7 +54,7 @@ cd /d "%SCRIPT_DIR%"
 echo.
 echo === 1. Setting up Python Virtual Environment ===
 if not exist ".venv" (
-    python -m venv .venv
+    %PYTHON_CMD% -m venv .venv
     echo [OK] Virtual environment created.
 ) else (
     echo [INFO] Virtual environment already exists.
