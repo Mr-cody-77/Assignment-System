@@ -25,28 +25,35 @@ def main():
         else:
             subprocess.run([updater_path], shell=True)
     
-    # Start Backend silently in the background
-    print("Starting Backend (Port 8000)...")
-    backend_log = open(os.path.join(base_dir, "backend.log"), "a")
+    central_db_dir = os.path.join(base_dir, "Centralized_Database")
+    
+    # 1. Start Centralized Database (Port 8000)
+    print("Starting Centralized Database (Port 8000)...")
+    central_log = open(os.path.join(base_dir, "central_db.log"), "a")
     if sys.platform == "win32":
         subprocess.Popen(
             [venv_python, "manage.py", "runserver", "0.0.0.0:8000"],
-            cwd=backend_dir,
-            stdout=backend_log,
+            cwd=central_db_dir,
+            stdout=central_log,
             stderr=subprocess.STDOUT,
             creationflags=subprocess.CREATE_NO_WINDOW
         )
     else:
         subprocess.Popen(
             [venv_python, "manage.py", "runserver", "0.0.0.0:8000"],
-            cwd=backend_dir,
-            stdout=backend_log,
+            cwd=central_db_dir,
+            stdout=central_log,
             stderr=subprocess.STDOUT
         )
     
-    # Start Frontend silently in the background
+    # 2. Start Frontend (React)
     if os.path.exists(frontend_dir):
-        print("Starting Frontend (Port 3000)...")
+        print("Starting Frontend (React)...")
+        # Ensure React .env is configured correctly
+        with open(os.path.join(frontend_dir, '.env'), 'w') as f:
+            f.write("REACT_APP_CENTRAL_URL=http://localhost:8000\n")
+            f.write("PORT=3000\n")
+            
         frontend_log = open(os.path.join(base_dir, "frontend.log"), "a")
         if sys.platform == "win32":
             subprocess.Popen(

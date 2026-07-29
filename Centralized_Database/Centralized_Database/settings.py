@@ -19,13 +19,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#3f#z9gyth+k*b96%4!$^_qbp_liiyfxi^bm!^$nb-=@zm7cuu'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev-only')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['*']
+
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
 
@@ -90,10 +96,7 @@ WSGI_APPLICATION = 'Centralized_Database.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
