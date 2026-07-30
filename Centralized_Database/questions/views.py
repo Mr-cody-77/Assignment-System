@@ -468,26 +468,7 @@ class LockdownScheduleView(APIView):
         if not schedule:
             return Response({"schedule": None})
             
-        # ── Automated Email Trigger ──
-        if schedule.end_time < timezone.now() and not schedule.emails_sent:
-            # Check if all submissions have been checked for plagiarism
-            unchecked_exists = SubmittedSolution.objects.filter(
-                plagiarism_checked=False
-            ).exists()
-            
-            if unchecked_exists:
-                # Trigger LLM plagiarism daemon for un-checked submissions
-                from django.core.cache import cache
-                from results.llm_plagiarism import run_llm_plagiarism_check
-                lock_key = f"llm_plagiarism_lock_{schedule.id}"
-                if not cache.get(lock_key):
-                    cache.set(lock_key, True, timeout=86400)
-                    threading.Thread(target=run_llm_plagiarism_check, args=(schedule.id,)).start()
-            else:
-                # All checked, trigger email dispatch
-                schedule.emails_sent = True
-                schedule.save(update_fields=['emails_sent'])
-                threading.Thread(target=trigger_email_daemon, args=(schedule.id,)).start()
+        # Autonomous daemon now handles the LLM checking and Emails
                 
         return Response({
             "schedule": {

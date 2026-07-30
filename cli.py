@@ -75,6 +75,13 @@ def main():
                             name="Central DB Server",
                             env_vars={"SERVER_PORT": str(args.port)}  # <--- Inject the DB port
                         )
+            
+            # Start the Autonomous Daemon as a separate process alongside the DB Server
+            run_command(
+                [sys.executable, "central_db_daemon.py"],
+                cwd=DB_SERVER_DIR,
+                name="Central DB Background Daemon",
+            )
 
         if args.assignment:
             print(f"💻 Mode: Assignment Node + Frontend (Node Port {args.port})")
