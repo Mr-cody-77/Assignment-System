@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { endpoints } from '../config/endpointResolver';
+import runtimeConfig from '../config/runtimeConfig';
 
 const TIMEOUT = 30000;
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -308,6 +309,19 @@ const backendClient = axios.create({
   baseURL: NODE_URL,
   timeout: TIMEOUT,
   headers: JSON_HEADERS,
+});
+
+// Dynamically route backendRequest to the dynamically discovered local node port
+backendClient.interceptors.request.use((config) => {
+  try {
+    const dynamicBackendURL = runtimeConfig.getBackendURL();
+    if (dynamicBackendURL) {
+      config.baseURL = dynamicBackendURL;
+    }
+  } catch (err) {
+    // Fallback to static baseURL if not yet initialized
+  }
+  return config;
 });
 
 const requestConfig = (config = {}) => ({
