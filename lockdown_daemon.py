@@ -142,21 +142,12 @@ def is_admin():
 
 def lock_internet():
     try:
-        # We block all public IP ranges but MUST avoid blocking Private LAN, Multicast (224.0.0.0/4 for Zeroconf), and Broadcast (255.255.255.255)
-        public_ipv4 = (
-            "'1.0.0.0-9.255.255.255', "
-            "'11.0.0.0-126.255.255.255', "
-            "'128.0.0.0-172.15.255.255', "
-            "'172.32.0.0-192.167.255.255', "
-            "'192.169.0.0-223.255.255.255', "
-            "'240.0.0.0-255.255.255.254'"
-        )
         script = (
             "$ErrorActionPreference = 'Stop'; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
-            f"New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress {public_ipv4} -Enabled True;"
+            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress Internet -Enabled True;"
         )
         res1 = subprocess.run([
             'powershell', '-Command', script
@@ -165,7 +156,7 @@ def lock_internet():
         if res1.returncode != 0:
             logging.error(f"Failed to lock internet. res1: {res1.stderr}")
         else:
-            logging.info("Internet locked.")
+            logging.info("Internet locked using dynamic Internet RemoteAddress.")
     except Exception as e:
         logging.error(f"Failed to lock internet: {e}")
 
