@@ -169,11 +169,11 @@ def execute_code_locally(payload: dict) -> dict:
 
     for i, case in enumerate(test_cases):
         input_data = str(case.get('input_data', ''))
-        expected = str(case.get('expected_output', '')).strip()
+        expected = str(case.get('expected_output', '')).replace('\r\n', '\n').strip()
         
         # Run the code
         exec_result = run_local_code(language, code, input_data, time_limit_ms)
-        actual = exec_result['stdout'].strip()
+        actual = exec_result['stdout'].replace('\r\n', '\n').strip()
 
         # Determine if test passed
         passed = (exec_result['status'] == 'success' and actual == expected)

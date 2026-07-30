@@ -241,8 +241,8 @@ def evaluate_task(task: dict) -> dict:
     for i, case in enumerate(test_cases):
         result = run_code(language, code, str(case.get('input_data', '')),
                           time_limit_ms, memory_limit_mb)
-        expected = str(case.get('expected_output', '')).strip()
-        actual = result['stdout'].strip()
+        expected = str(case.get('expected_output', '')).replace('\r\n', '\n').strip()
+        actual = result['stdout'].replace('\r\n', '\n').strip()
         passed = (
             result['status'] == 'success'
             and actual == expected
