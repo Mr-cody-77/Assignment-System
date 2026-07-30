@@ -23,6 +23,20 @@ except ImportError:
 DATABASE_SERVICE_TYPE = "_assignsysdb._tcp.local."
 
 
+def update_local_ip_from_db(db_ip, db_port):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0.3)
+        s.connect((db_ip, int(db_port)))
+        ip = s.getsockname()[0]
+        s.close()
+        if ip and not ip.startswith('127.'):
+            return ip
+    except Exception:
+        pass
+    return None
+
+
 class DatabaseListener:
     def __init__(self):
         self.last_seen = {}
@@ -54,6 +68,10 @@ class DatabaseListener:
 
             with runtime.lock:
                 runtime.database_server = database_server
+                resolved_ip = update_local_ip_from_db(ip, port)
+                if resolved_ip:
+                    runtime.ip = resolved_ip
+                    logger.info(f"Dynamically updated local IP to {resolved_ip} using DB connection.")
 
             logger.info(f"Database server discovered @ {ip}:{port}")
             return

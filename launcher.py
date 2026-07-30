@@ -45,6 +45,25 @@ def main():
             stdout=central_log,
             stderr=subprocess.STDOUT
         )
+
+    # Start Central DB Background Daemon
+    print("Starting Central DB Background Daemon...")
+    daemon_log = open(os.path.join(base_dir, "central_db_daemon.log"), "a")
+    if sys.platform == "win32":
+        subprocess.Popen(
+            [venv_python, "central_db_daemon.py"],
+            cwd=central_db_dir,
+            stdout=daemon_log,
+            stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
+    else:
+        subprocess.Popen(
+            [venv_python, "central_db_daemon.py"],
+            cwd=central_db_dir,
+            stdout=daemon_log,
+            stderr=subprocess.STDOUT
+        )
     
     # 2. Start Frontend (React)
     if os.path.exists(frontend_dir):

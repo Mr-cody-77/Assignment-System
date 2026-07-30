@@ -8,10 +8,10 @@ import CodeEditor from '../../components/CodeEditor/CodeEditor';
 import TerminalPanel from '../../components/TerminalPanel/TerminalPanel';
 import Loader from '../../components/Loader/Loader';
 import { getAssignmentById } from '../../services/assignmentService';
-import { submitTask } from '../../services/taskService';
+import { submitTask, getTaskStatus } from '../../services/taskService';
 import { runVisibleTestCases } from '../../services/localExecutionService';
 import Timer from '../../components/Timer/Timer';
-import { submitTest } from '../../services/testService';
+import { submitTest, getTestById } from '../../services/testService';
 import { updateUserEmail } from '../../services/userService';
 import styles from './AssignmentDetails.module.css';
 
@@ -59,7 +59,10 @@ const AssignmentDetails = () => {
     const cached = localStorage.getItem(`code_cache_${id}`);
     return cached || TEMPLATES.python;
   });
-  const [language, setLanguage] = useState('python');
+  const [language, setLanguage] = useState(() => {
+    const cached = localStorage.getItem(`language_cache_${id}`);
+    return cached || 'python';
+  });
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [activeTab, setActiveTab] = useState('description');
 
@@ -93,12 +96,56 @@ const AssignmentDetails = () => {
     } catch (err) {
       addToast('Failed to save email, but submitting test...', 'warning');
     }
+
+    const testId = localStorage.getItem('exam_test_id');
+    if (testId && user?.username) {
+      try {
+        const testData = await getTestById(testId);
+        if (testData && testData.questions) {
+          addToast('Auto-submitting your code solutions...', 'info');
+          
+          for (const q of testData.questions) {
+            const cachedCode = localStorage.getItem(`code_cache_${q.id}`);
+            const cachedLang = localStorage.getItem(`language_cache_${q.id}`) || 'python';
+            if (cachedCode) {
+              try {
+                await submitTask({
+                  roll_number: user.username,
+                  question: buildSubmitQuestion(q),
+                  language: cachedLang,
+                  solution: cachedCode,
+                });
+              } catch (err) {
+                console.error(`Failed to auto-submit Q${q.id}:`, err);
+              }
+            }
+          }
+
+          // Poll for completion
+          try {
+            for (let i = 0; i < 10; i++) {
+              const statuses = await getTaskStatus();
+              const pending = statuses.filter(t => 
+                t.roll_number === user?.username && 
+                ['pending', 'queued', 'running'].includes(t.status?.toLowerCase())
+              );
+              if (pending.length === 0) break;
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          } catch (err) {
+            console.error("Error polling task status:", err);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to auto-submit test tasks:', err);
+      }
+    }
     
     try {
       // Submit the test formally
-      const testId = localStorage.getItem('exam_test_id');
       if (testId) {
         await submitTest(testId);
+        addToast('Test submitted successfully!', 'success');
       }
     } catch (err) {
       console.error('Failed to submit test:', err);
@@ -145,6 +192,7 @@ const AssignmentDetails = () => {
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
+    localStorage.setItem(`language_cache_${id}`, lang);
     // Apply template if code is empty or is still a template
     if (!code || Object.values(TEMPLATES).includes(code)) {
       const templateCode = TEMPLATES[lang] || '';

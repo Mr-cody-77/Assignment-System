@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
+import Editor, { loader } from '@monaco-editor/react';
 import styles from './CodeEditor.module.css';
 
 const LANGUAGES = [
@@ -34,6 +34,31 @@ const CodeEditor = ({
 }) => {
   const [fullscreen, setFullscreen] = useState(false);
   const monacoLang = LANGUAGES.find((l) => l.value === language)?.monaco || 'python';
+
+  const [monacoLoaded, setMonacoLoaded] = useState(false);
+  const [monacoError, setMonacoError] = useState(false);
+
+  useEffect(() => {
+    let timeoutId = setTimeout(() => {
+      if (!monacoLoaded) {
+        console.warn("Monaco loading timed out, falling back to textarea.");
+        setMonacoError(true);
+      }
+    }, 3000);
+
+    loader.init()
+      .then(() => {
+        clearTimeout(timeoutId);
+        setMonacoLoaded(true);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        console.error("Monaco loading failed:", err);
+        setMonacoError(true);
+      });
+
+    return () => clearTimeout(timeoutId);
+  }, [monacoLoaded]);
 
   // When language changes externally and code is empty/template, load new template
   useEffect(() => {
@@ -98,30 +123,53 @@ const CodeEditor = ({
 
       {/* Editor */}
       <div className={styles.editorWrap}>
-        <Editor
-          height="100%"
-          language={monacoLang}
-          theme={theme}
-          value={value}
-          onChange={(v) => {
-            if (!readOnly) onChange?.(v || '');
-          }}
-          options={{
-            readOnly: readOnly,
-            fontSize: 14,
-            minimap: { enabled: false },
-            lineNumbers: 'on',
-            wordWrap: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 4,
-            renderLineHighlight: 'all',
-            cursorBlinking: 'smooth',
-            smoothScrolling: true,
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            fontLigatures: false,
-          }}
-        />
+        {monacoError ? (
+          <textarea
+            value={value}
+            onChange={(e) => {
+              if (!readOnly) onChange?.(e.target.value);
+            }}
+            readOnly={readOnly}
+            placeholder="Type your solution here..."
+            style={{
+              width: '100%',
+              height: '100%',
+              background: theme === 'vs-light' ? '#ffffff' : '#1e1e1e',
+              color: theme === 'vs-light' ? '#000000' : '#d4d4d4',
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontSize: '14px',
+              padding: '16px',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+            }}
+          />
+        ) : (
+          <Editor
+            height="100%"
+            language={monacoLang}
+            theme={theme}
+            value={value}
+            onChange={(v) => {
+              if (!readOnly) onChange?.(v || '');
+            }}
+            options={{
+              readOnly: readOnly,
+              fontSize: 14,
+              minimap: { enabled: false },
+              lineNumbers: 'on',
+              wordWrap: 'on',
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 4,
+              renderLineHighlight: 'all',
+              cursorBlinking: 'smooth',
+              smoothScrolling: true,
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontLigatures: false,
+            }}
+          />
+        )}
       </div>
     </div>
   );

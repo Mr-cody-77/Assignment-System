@@ -444,6 +444,7 @@ const TestQuestions = () => {
 
       for (const q of test.questions) {
         const cachedCode = localStorage.getItem(`code_cache_${q.id}`);
+        const cachedLang = localStorage.getItem(`language_cache_${q.id}`) || 'python';
         // We will just submit the cached code for all questions, 
         // the backend logic handles overriding/processing them correctly.
         if (cachedCode) {
@@ -451,7 +452,7 @@ const TestQuestions = () => {
             await submitTask({
               roll_number: user.username,
               question: buildSubmitQuestion(q),
-              language: 'python', // Default to python if language not cached
+              language: cachedLang,
               solution: cachedCode,
             });
           } catch (err) {

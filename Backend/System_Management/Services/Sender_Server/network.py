@@ -79,6 +79,20 @@ class NodeListener:
             receiver_runtime.database_server = db_info
 
             logger.info(f"Database discovered @ {ip}:{port}")
+
+            # Dynamically update both runtime local IPs using the DB connection
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.settimeout(0.3)
+                s.connect((ip, int(port)))
+                resolved_ip = s.getsockname()[0]
+                s.close()
+                if resolved_ip and not resolved_ip.startswith('127.'):
+                    runtime.ip = resolved_ip
+                    receiver_runtime.ip = resolved_ip
+                    logger.info(f"Dynamically updated local IP to {resolved_ip} using DB connection.")
+            except Exception:
+                pass
             return
 
         # -------------------------

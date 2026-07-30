@@ -29,6 +29,46 @@ if os.path.exists(env_path):
             elif line.startswith('DATABASE_SERVER_PORT='):
                 db_server_port = line.split('=', 1)[1].strip()
 
+def get_db_url_from_local_node():
+    # First check .env for REACT_APP_NODE_PORT
+    frontend_env = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Frontend', 'system_interface', '.env')
+    node_port = 8000
+    if os.path.exists(frontend_env):
+        try:
+            with open(frontend_env, 'r') as f:
+                for line in f:
+                    if line.strip().startswith('REACT_APP_NODE_PORT='):
+                        node_port = int(line.split('=', 1)[1].strip())
+                        break
+        except Exception:
+            pass
+
+    # Try to query the local node
+    try:
+        res = requests.get(f"http://localhost:{node_port}/api/node_info/", timeout=2)
+        if res.status_code == 200:
+            data = res.json()
+            db = data.get('database_server')
+            if db and db.get('ip') and db.get('port') and db.get('ip') != 'Pending...':
+                return f"http://{db['ip']}:{db['port']}/api/schedule/"
+    except Exception:
+        pass
+        
+    # Also fallback to check ports 8000 to 8010 just in case
+    for port in range(8000, 8010):
+        if port == node_port:
+            continue
+        try:
+            res = requests.get(f"http://localhost:{port}/api/node_info/", timeout=1)
+            if res.status_code == 200:
+                data = res.json()
+                db = data.get('database_server')
+                if db and db.get('ip') and db.get('port') and db.get('ip') != 'Pending...':
+                    return f"http://{db['ip']}:{db['port']}/api/schedule/"
+        except Exception:
+            continue
+    return None
+
 # Zeroconf Discovery Fallback
 discovered_db_url = None
 try:
@@ -170,7 +210,9 @@ def main():
         elif discovered_db_url:
             target_url = discovered_db_url
         else:
-            target_url = "http://localhost:8000/api/schedule/"
+            target_url = get_db_url_from_local_node()
+            if not target_url:
+                target_url = "http://localhost:8000/api/schedule/"
             
         try:
             response = requests.get(target_url, timeout=10)

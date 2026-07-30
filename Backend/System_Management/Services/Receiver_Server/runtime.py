@@ -12,6 +12,21 @@ import uuid
 
 def _get_local_ip() -> str:
     """Offline-safe LAN IP detection."""
+    # First, try to connect to the Central DB if its IP is configured in environment
+    db_ip = os.environ.get("DATABASE_SERVER_IP")
+    db_port = os.environ.get("DATABASE_SERVER_PORT")
+    if db_ip and db_port:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.3)
+            s.connect((db_ip, int(db_port)))
+            ip = s.getsockname()[0]
+            s.close()
+            if ip and not ip.startswith('127.'):
+                return ip
+        except OSError:
+            pass
+
     for target in ('8.8.8.8', '192.168.1.1', '192.168.0.1', '10.0.0.1', '172.16.0.1'):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
