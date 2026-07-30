@@ -143,3 +143,17 @@ def add_student(request):
         "password": student.username
     })
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_email(request):
+    email = request.data.get('email')
+    if not email:
+        return Response({"detail": "Email is required"}, status=400)
+    
+    user = request.user
+    user.email = email
+    user.save()
+    
+    return Response({"success": True, "email": user.email})
+
+

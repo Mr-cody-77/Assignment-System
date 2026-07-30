@@ -9,6 +9,7 @@ const TEACHER_NAV = [
   { to: '/teacher/tests', icon: 'TS', label: 'Tests' },
   { to: '/teacher/create-test', icon: 'CT', label: 'Create Test' },
   { to: '/teacher/results', icon: 'RS', label: 'Student Results' },
+  { to: '/teacher/flagged', icon: 'FG', label: 'Flagged Submissions' },
   { to: '/teacher/analytics', icon: 'AN', label: 'Analytics' },
   { to: '/teacher/nodes', icon: 'ND', label: 'Node Connections' },
   { to: '/teacher/add-user', icon: 'US', label: 'Add User' },

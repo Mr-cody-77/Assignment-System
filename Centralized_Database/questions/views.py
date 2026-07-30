@@ -243,6 +243,19 @@ class QuestionDetailView(APIView):
         except Question.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+    def delete(self, request, question_id):
+        if request.user.role != 'teacher':
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        try:
+            q = Question.objects.get(id=question_id)
+            # Reset test attempts and submissions because the test changed
+            TestAttempt.objects.filter(test=q.test).delete()
+            TestSubmission.objects.filter(test=q.test).delete()
+            q.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Question.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
     def patch(self, request, question_id):
         if request.user.role != 'teacher':
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -446,9 +459,36 @@ class LockdownScheduleView(APIView):
     # No permission_classes at class level; GET is public for daemon
 
     def get(self, request):
+        from django.utils import timezone
+        import threading
+        from results.models import SubmittedSolution
+        from results.services import trigger_email_daemon
+        
         schedule = LockdownSchedule.objects.filter(is_active=True).order_by('-created_at').first()
         if not schedule:
             return Response({"schedule": None})
+            
+        # ── Automated Email Trigger ──
+        if schedule.end_time < timezone.now() and not schedule.emails_sent:
+            # Check if all submissions have been checked for plagiarism
+            unchecked_exists = SubmittedSolution.objects.filter(
+                plagiarism_checked=False
+            ).exists()
+            
+            if unchecked_exists:
+                # Trigger LLM plagiarism daemon for un-checked submissions
+                from django.core.cache import cache
+                from results.llm_plagiarism import run_llm_plagiarism_check
+                lock_key = f"llm_plagiarism_lock_{schedule.id}"
+                if not cache.get(lock_key):
+                    cache.set(lock_key, True, timeout=86400)
+                    threading.Thread(target=run_llm_plagiarism_check, args=(schedule.id,)).start()
+            else:
+                # All checked, trigger email dispatch
+                schedule.emails_sent = True
+                schedule.save(update_fields=['emails_sent'])
+                threading.Thread(target=trigger_email_daemon, args=(schedule.id,)).start()
+                
         return Response({
             "schedule": {
                 "start_time": schedule.start_time,

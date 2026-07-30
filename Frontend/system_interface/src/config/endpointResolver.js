@@ -20,6 +20,7 @@ export const endpoints = {
   refresh: () => `${central()}/api/users/refresh/`,
   addStudent: () => `${central()}/api/users/add_student/`,
   addTeacher: () => `${central()}/api/users/add_teacher/`,
+  updateEmail: () => `${central()}/api/users/update_email/`,
 
   // ── Tests & Questions (Central Server) ───────────────────
   tests: () => `${central()}/api/tests/`,

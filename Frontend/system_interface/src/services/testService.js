@@ -36,6 +36,11 @@ export const updateTest = async (id, data) => {
     return res.data;
 };
 
+export const deleteQuestion = async (id) => {
+    const res = await centralRequest.delete(endpoints.questionById(id));
+    return res.data;
+};
+
 export const generateTestCases = async (data) => {
   const res = await centralRequest.post(endpoints.aiGenerateTestCases(), data, { timeout: 120000 });
   return res.data;

@@ -17,6 +17,7 @@ import TeacherNodeConnections from '../pages/teacher/TeacherNodeConnections';
 import AddUser from '../pages/teacher/AddUser';
 import AnalyticsPage from '../pages/teacher/AnalyticsPage';
 import CodeReview from '../pages/teacher/CodeReview';
+import FlaggedSubmissions from '../pages/teacher/FlaggedSubmissions';
 
 // Student pages
 import StudentDashboard from '../pages/student/StudentDashboard.jsx';
@@ -73,6 +74,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requiredRole="teacher">
             <StudentResults />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/flagged"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <FlaggedSubmissions />
           </ProtectedRoute>
         }
       />

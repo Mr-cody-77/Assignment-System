@@ -59,6 +59,7 @@ class SubmittedSolution(models.Model):
     question_id = models.CharField(max_length=100)
     language = models.CharField(max_length=50, default='python')
     code = models.TextField()
+    plagiarism_checked = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

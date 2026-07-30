@@ -12,6 +12,7 @@ import { submitTask } from '../../services/taskService';
 import { runVisibleTestCases } from '../../services/localExecutionService';
 import Timer from '../../components/Timer/Timer';
 import { submitTest } from '../../services/testService';
+import { updateUserEmail } from '../../services/userService';
 import styles from './AssignmentDetails.module.css';
 
 const TEMPLATES = {
@@ -67,10 +68,32 @@ const AssignmentDetails = () => {
   const [submittedTaskId, setSubmittedTaskId] = useState(null);
   const [terminalResults, setTerminalResults] = useState(null);
 
+  // Email modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+
   const examActive = localStorage.getItem('exam_active') === 'true';
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
 
-  const handleExamEnd = async () => {
+  const handleExamEnd = () => {
+    setShowEmailModal(true);
+  };
+
+  const confirmExamEnd = async (e) => {
+    e.preventDefault();
+    if (!emailInput.trim()) {
+      addToast('Please enter a valid email address.', 'warning');
+      return;
+    }
+    
+    setEmailSubmitting(true);
+    try {
+      await updateUserEmail(emailInput);
+    } catch (err) {
+      addToast('Failed to save email, but submitting test...', 'warning');
+    }
+    
     try {
       // Submit the test formally
       const testId = localStorage.getItem('exam_test_id');
@@ -79,12 +102,14 @@ const AssignmentDetails = () => {
       }
     } catch (err) {
       console.error('Failed to submit test:', err);
+    } finally {
+      setEmailSubmitting(false);
+      localStorage.removeItem('exam_active');
+      localStorage.removeItem('exam_duration');
+      localStorage.removeItem('exam_end_time');
+      localStorage.removeItem('exam_test_id');
+      navigate('/student');
     }
-    localStorage.removeItem('exam_active');
-    localStorage.removeItem('exam_duration');
-    localStorage.removeItem('exam_end_time');
-    localStorage.removeItem('exam_test_id');
-    navigate('/student');
   };
 
   useEffect(() => {
@@ -387,6 +412,65 @@ const AssignmentDetails = () => {
           </div>
         </div>
       </div>
+
+      {showEmailModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            background: 'var(--clr-surface)', padding: '32px', borderRadius: '20px',
+            width: '90%', maxWidth: '440px', boxShadow: '0 24px 50px rgba(0,0,0,0.5)',
+            border: '1px solid var(--clr-border)',
+            display: 'flex', flexDirection: 'column', gap: '16px'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: 'var(--clr-text)' }}>
+              Enter Preferred Email
+            </h3>
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--clr-text-2)', lineHeight: 1.5 }}>
+              Where would you like to receive your final score and plagiarism check results?
+            </p>
+            <form onSubmit={confirmExamEnd} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
+              <div>
+                <input
+                  type="email"
+                  placeholder="student@example.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  required
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: '10px',
+                    border: '1px solid var(--clr-border)', background: 'var(--clr-bg-2)',
+                    color: 'var(--clr-text)', fontSize: '15px', outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.border = '1px solid var(--clr-primary)'}
+                  onBlur={(e) => e.target.style.border = '1px solid var(--clr-border)'}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 600 }}
+                  onClick={() => setShowEmailModal(false)}
+                  disabled={emailSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 600, background: 'var(--clr-primary)' }}
+                  disabled={emailSubmitting}
+                >
+                  {emailSubmitting ? 'Submitting...' : 'Submit & End Test'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

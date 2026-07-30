@@ -63,6 +63,8 @@ class PlagiarismDetectedTeacherSerializer(serializers.ModelSerializer):
     flagged_student_roll = serializers.CharField(
         source='flagged_student_id.roll_number'
     )
+    flagged_code = serializers.SerializerMethodField()
+    copied_from_code = serializers.SerializerMethodField()
 
     class Meta:
         model = PlagiarismDetected
@@ -73,7 +75,27 @@ class PlagiarismDetectedTeacherSerializer(serializers.ModelSerializer):
             'question_id',
             'similarity_score',
             'detected_at',
+            'flagged_code',
+            'copied_from_code'
         ]
+
+    def get_flagged_code(self, obj):
+        try:
+            return SubmittedSolution.objects.get(
+                roll_number=obj.flagged_student_id.roll_number,
+                question_id=obj.question_id
+            ).code
+        except SubmittedSolution.DoesNotExist:
+            return "Code not found."
+
+    def get_copied_from_code(self, obj):
+        try:
+            return SubmittedSolution.objects.get(
+                roll_number=obj.copied_from_student_roll,
+                question_id=obj.question_id
+            ).code
+        except SubmittedSolution.DoesNotExist:
+            return "Code not found."
 
 
 class PlagiarismDetectedStudentSerializer(serializers.ModelSerializer):

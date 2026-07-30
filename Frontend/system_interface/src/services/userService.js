@@ -25,3 +25,11 @@ export const addTeacher = async (username, password) => {
   const res = await centralRequest.post(endpoints.addTeacher(), { username, password });
   return res.data;
 };
+
+/**
+ * Update the preferred email for the logged-in student.
+ */
+export const updateUserEmail = async (email) => {
+  const res = await centralRequest.post(endpoints.updateEmail(), { email });
+  return res.data;
+};

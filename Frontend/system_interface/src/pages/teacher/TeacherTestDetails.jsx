@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
 import Loader from '../../components/Loader/Loader';
 import StatCard from '../../components/common/StatCard';
-import { getTestById, deleteTest } from '../../services/testService';
+import { getTestById, deleteTest, deleteQuestion } from '../../services/testService';
 import { formatDate } from '../../utils/formatters';
 import EditQuestionModal from './EditQuestionModal';
 import EditTestModal from './EditTestModal';
@@ -47,6 +47,17 @@ const TeacherTestDetails = () => {
       console.error(err);
       setError('Failed to delete test.');
       setDeleting(false);
+    }
+  }
+
+  const handleDeleteQuestion = async (questionId) => {
+    if (!window.confirm("Are you sure you want to delete this question?")) return;
+    try {
+      await deleteQuestion(questionId);
+      fetchTest();
+    } catch(err) {
+      console.error(err);
+      alert('Failed to delete question.');
     }
   }
 
@@ -114,12 +125,20 @@ const TeacherTestDetails = () => {
                                 (Marks: {q.marks || 10})
                             </span>
                         </h3>
-                        <button 
-                            className="btn btn-secondary btn-sm" 
-                            onClick={() => setEditingQuestion(q)}
-                        >
-                            ✏️ Edit
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                                className="btn btn-secondary btn-sm" 
+                                onClick={() => setEditingQuestion(q)}
+                            >
+                                ✏️ Edit
+                            </button>
+                            <button 
+                                className="btn btn-danger btn-sm" 
+                                onClick={() => handleDeleteQuestion(q.id)}
+                            >
+                                🗑️ Delete
+                            </button>
+                        </div>
                     </div>
                     <p style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)' }}>
                         {q.description}

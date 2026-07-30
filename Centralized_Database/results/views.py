@@ -150,6 +150,7 @@ def plagiarism_ingest(request):
         defaults={
             "language": language,
             "code": code,
+            "plagiarism_checked": False,
         },
     )
 
