@@ -102,13 +102,14 @@ def is_admin():
 
 def lock_internet():
     try:
-        # We block all public IP ranges but avoid blocking 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+        # We block all public IP ranges but MUST avoid blocking Private LAN, Multicast (224.0.0.0/4 for Zeroconf), and Broadcast (255.255.255.255)
         public_ipv4 = (
             "'1.0.0.0-9.255.255.255', "
             "'11.0.0.0-126.255.255.255', "
             "'128.0.0.0-172.15.255.255', "
             "'172.32.0.0-192.167.255.255', "
-            "'192.169.0.0-255.255.255.255'"
+            "'192.169.0.0-223.255.255.255', "
+            "'240.0.0.0-255.255.255.254'"
         )
         script = (
             "$ErrorActionPreference = 'Stop'; "

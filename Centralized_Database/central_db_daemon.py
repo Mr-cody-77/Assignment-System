@@ -18,6 +18,11 @@ def main():
     except Exception as e:
         logger.error(f"Failed to setup Django: {e}")
         sys.exit(1)
+        
+    from django.conf import settings
+    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+        logger.warning("⚠️ CRITICAL WARNING: EMAIL_HOST_USER or EMAIL_HOST_PASSWORD is missing in .env!")
+        logger.warning("⚠️ The email daemon will NOT be able to send result emails!")
 
     from django.utils import timezone
     from django.core.cache import cache
