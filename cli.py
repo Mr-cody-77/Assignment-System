@@ -44,6 +44,10 @@ def run_command(command, cwd, name, env_vars=None):
     if env_vars:
         process_env.update(env_vars)
     
+    # Create React App crashes if ALLOWED_HOSTS is defined but empty in the system environment
+    if name == "React Frontend" and "ALLOWED_HOSTS" in process_env:
+        del process_env["ALLOWED_HOSTS"]
+    
     try:
         # Pass the updated environment to the subprocess
         p = subprocess.Popen(command, cwd=cwd, shell=use_shell, env=process_env)
