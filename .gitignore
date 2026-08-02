@@ -5,6 +5,7 @@
 logs/
 
 venv/
+.venv/
 __pycache__/
 installer/
 laucher/

@@ -14,6 +14,15 @@ DB_SERVER_DIR = "Centralized_Database"     # Path to your Django Central DB Serv
 
 processes = []
 
+def get_python_executable():
+    """Returns the virtual environment Python executable if it exists, otherwise falls back to sys.executable."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    venv_python = os.path.join(base_dir, ".venv", "Scripts", "python.exe") if os.name == 'nt' else os.path.join(base_dir, ".venv", "bin", "python")
+    if os.path.exists(venv_python):
+        return venv_python
+    return sys.executable
+
+
 def update_frontend_env(port):
     """Dynamically writes the port to the React .env file"""
     env_path = os.path.join(FRONTEND_DIR, '.env')
@@ -56,11 +65,13 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    python_exe = get_python_executable()
+
     try:
         if args.worker_only:
             print(f"🤖 Mode: Headless Worker Node (Port {args.port})")
             run_command(
-                [sys.executable, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
+                [python_exe, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
                 cwd=ASSIGNMENT_NODE_DIR,
                 name="Headless Node",
                 env_vars={"NODE_PORT": str(args.port)} 
@@ -69,7 +80,7 @@ def main():
         if args.db_server:
             print(f"🌐 Mode: Centralized DB Server (Port {args.port})")
             run_command(
-                            [sys.executable, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
+                            [python_exe, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
                             cwd=DB_SERVER_DIR,
                             name="Central DB Server",
                             env_vars={"SERVER_PORT": str(args.port)}  # <--- Inject the DB port
@@ -77,7 +88,7 @@ def main():
             
             # Start the Autonomous Daemon as a separate process alongside the DB Server
             run_command(
-                [sys.executable, "central_db_daemon.py"],
+                [python_exe, "central_db_daemon.py"],
                 cwd=DB_SERVER_DIR,
                 name="Central DB Background Daemon",
             )
@@ -90,7 +101,7 @@ def main():
             
             # 2. Start Django Backend Node
             run_command(
-                            [sys.executable, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
+                            [python_exe, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
                             cwd=ASSIGNMENT_NODE_DIR,
                             name="Node Backend",
                             env_vars={"NODE_PORT": str(args.port)}  # <--- Inject the Node port
