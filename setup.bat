@@ -63,16 +63,16 @@ if not exist ".venv" (
 
 echo.
 echo === 2. Installing Backend Dependencies ===
-".venv\Scripts\python.exe" -m pip install --upgrade pip
+".venv\Scripts\python.exe" -m pip install --no-cache-dir --upgrade pip
 if %errorLevel% neq 0 (
     echo [WARNING] The virtual environment appears to be corrupted or invalid (possibly copied from another computer).
     echo [INFO] Recreating the virtual environment...
     rmdir /s /q ".venv"
     %PYTHON_CMD% -m venv .venv
-    ".venv\Scripts\python.exe" -m pip install --upgrade pip
+    ".venv\Scripts\python.exe" -m pip install --no-cache-dir --upgrade pip
 )
 
-".venv\Scripts\python.exe" -m pip install -r requirements.txt
+".venv\Scripts\python.exe" -m pip install --no-cache-dir -r requirements.txt
 if %errorLevel% neq 0 (
     echo [ERROR] Failed to install python requirements.
     pause
