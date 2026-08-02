@@ -58,7 +58,16 @@ if not exist ".venv" (
     %PYTHON_CMD% -m venv .venv
     echo [OK] Virtual environment created.
 ) else (
-    echo [INFO] Virtual environment already exists.
+    echo [INFO] Virtual environment already exists. Checking validity...
+    ".venv\Scripts\python.exe" -c "import sys, os; sys.exit(0 if os.path.abspath(sys.prefix).lower() == os.path.abspath('.venv').lower() else 1)" >nul 2>&1
+    if %errorLevel% neq 0 (
+        echo [WARNING] Virtual environment path mismatch detected ^(copied from another PC^).
+        echo [INFO] Recreating the virtual environment...
+        rmdir /s /q ".venv"
+        %PYTHON_CMD% -m venv .venv
+    ) else (
+        echo [OK] Virtual environment is valid.
+    )
 )
 
 echo.
@@ -78,6 +87,16 @@ if %errorLevel% neq 0 (
     pause
     exit /b 1
 )
+
+echo [INFO] Verifying installation...
+".venv\Scripts\python.exe" -c "import requests" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] Verification failed! Critical dependencies like 'requests' are missing.
+    echo Please manually run: .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+    pause
+    exit /b 1
+)
+echo [OK] Backend dependencies installed successfully.
 
 echo.
 echo === 3. Installing Frontend Dependencies ===
