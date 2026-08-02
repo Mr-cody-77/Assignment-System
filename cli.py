@@ -46,8 +46,7 @@ def run_command(command, cwd, name, env_vars=None):
     
     # Create React App crashes if ALLOWED_HOSTS or HOST is empty in the system environment
     if name == "React Frontend":
-        if "ALLOWED_HOSTS" in process_env:
-            del process_env["ALLOWED_HOSTS"]
+        process_env["ALLOWED_HOSTS"] = "localhost"
         process_env["HOST"] = "localhost"
         if "DANGEROUSLY_DISABLE_HOST_CHECK" in process_env:
             del process_env["DANGEROUSLY_DISABLE_HOST_CHECK"]
