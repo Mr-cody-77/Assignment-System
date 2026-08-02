@@ -147,7 +147,8 @@ def lock_internet():
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
-            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-9.255.255.255', '11.0.0.0-126.255.255.255', '128.0.0.0-172.15.255.255', '172.32.0.0-192.167.255.255', '192.169.0.0-223.255.255.255', '240.0.0.0-255.255.255.254' -Enabled True;"
+            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-9.255.255.255', '11.0.0.0-126.255.255.255', '128.0.0.0-172.15.255.255', '172.32.0.0-192.167.255.255', '192.169.0.0-223.255.255.255', '240.0.0.0-255.255.255.254' -Enabled True; "
+            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -Direction Outbound -Action Block -RemoteAddress '::/0' -Enabled True;"
         )
         res1 = subprocess.run([
             'powershell', '-Command', script
@@ -164,6 +165,7 @@ def unlock_internet():
     try:
         script = (
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
+            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue;"
         )
