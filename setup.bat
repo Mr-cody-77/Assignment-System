@@ -54,32 +54,36 @@ cd /d "%SCRIPT_DIR%"
 
 echo.
 echo === 1. Setting up Python Virtual Environment ===
-if not exist ".venv" (
-    %PYTHON_CMD% -m venv .venv
-    echo [OK] Virtual environment created.
-) else (
-    echo [INFO] Virtual environment already exists. Checking validity...
-    ".venv\Scripts\python.exe" -c "import sys, os; sys.exit(0 if os.path.abspath(sys.prefix).lower() == os.path.abspath('.venv').lower() else 1)" >nul 2>&1
-    if %errorLevel% neq 0 (
-        echo [WARNING] Virtual environment path mismatch detected ^(copied from another PC^).
-        echo [INFO] Recreating the virtual environment...
-        rmdir /s /q ".venv"
-        %PYTHON_CMD% -m venv .venv
-    ) else (
-        echo [OK] Virtual environment is valid.
-    )
+if not exist ".venv" goto create_venv
+
+echo [INFO] Virtual environment already exists. Checking validity...
+".venv\Scripts\python.exe" -c "import sys, os; sys.exit(0 if os.path.abspath(sys.prefix).lower() == os.path.abspath('.venv').lower() else 1)" >nul 2>&1
+if %errorLevel% equ 0 (
+    echo [OK] Virtual environment is valid.
+    goto venv_done
 )
 
+echo [WARNING] Virtual environment path mismatch detected ^(copied from another PC^).
+echo [INFO] Recreating the virtual environment...
+rmdir /s /q ".venv"
+
+:create_venv
+%PYTHON_CMD% -m venv .venv
+echo [OK] Virtual environment created.
+
+:venv_done
 echo.
 echo === 2. Installing Backend Dependencies ===
 ".venv\Scripts\python.exe" -m pip install --no-cache-dir --upgrade pip
-if %errorLevel% neq 0 (
-    echo [WARNING] The virtual environment appears to be corrupted or invalid (possibly copied from another computer).
-    echo [INFO] Recreating the virtual environment...
-    rmdir /s /q ".venv"
-    %PYTHON_CMD% -m venv .venv
-    ".venv\Scripts\python.exe" -m pip install --no-cache-dir --upgrade pip
-)
+if %errorLevel% equ 0 goto pip_upgrade_done
+
+echo [WARNING] The virtual environment appears to be corrupted or invalid.
+echo [INFO] Recreating the virtual environment...
+rmdir /s /q ".venv"
+%PYTHON_CMD% -m venv .venv
+".venv\Scripts\python.exe" -m pip install --no-cache-dir --upgrade pip
+
+:pip_upgrade_done
 
 ".venv\Scripts\python.exe" -m pip install --no-cache-dir -r requirements.txt
 if %errorLevel% neq 0 (
