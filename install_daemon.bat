@@ -37,3 +37,5 @@ if %errorLevel% == 0 (
 ) else (
     echo Failed to install the daemon.
 )
+
+pause
