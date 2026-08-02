@@ -147,7 +147,7 @@ def lock_internet():
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
             "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
-            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress Internet -Enabled True;"
+            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-9.255.255.255', '11.0.0.0-126.255.255.255', '128.0.0.0-172.15.255.255', '172.32.0.0-192.167.255.255', '192.169.0.0-255.255.255.255' -Enabled True;"
         )
         res1 = subprocess.run([
             'powershell', '-Command', script
@@ -156,7 +156,7 @@ def lock_internet():
         if res1.returncode != 0:
             logging.error(f"Failed to lock internet. res1: {res1.stderr}")
         else:
-            logging.info("Internet locked using dynamic Internet RemoteAddress.")
+            logging.info("Internet locked using explicit public IP blocks.")
     except Exception as e:
         logging.error(f"Failed to lock internet: {e}")
 
