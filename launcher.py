@@ -25,61 +25,54 @@ def main():
         else:
             subprocess.run([updater_path], shell=True)
     
-    central_db_dir = os.path.join(base_dir, "Centralized_Database")
+    # 1. Start Node Backend (System_Management) on Port 8000
+    print("Starting Node Backend (Port 8000)...")
+    node_log = open(os.path.join(base_dir, "node_backend.log"), "a")
     
-    # 1. Start Centralized Database (Port 8000)
-    print("Starting Centralized Database (Port 8000)...")
-    central_log = open(os.path.join(base_dir, "central_db.log"), "a")
+    # Set NODE_PORT environment variable for the backend
+    backend_env = os.environ.copy()
+    backend_env["NODE_PORT"] = "8000"
+    
     if sys.platform == "win32":
         subprocess.Popen(
             [venv_python, "manage.py", "runserver", "0.0.0.0:8000"],
-            cwd=central_db_dir,
-            stdout=central_log,
+            cwd=backend_dir,
+            stdout=node_log,
             stderr=subprocess.STDOUT,
+            env=backend_env,
             creationflags=subprocess.CREATE_NO_WINDOW
         )
     else:
         subprocess.Popen(
             [venv_python, "manage.py", "runserver", "0.0.0.0:8000"],
-            cwd=central_db_dir,
-            stdout=central_log,
-            stderr=subprocess.STDOUT
+            cwd=backend_dir,
+            stdout=node_log,
+            stderr=subprocess.STDOUT,
+            env=backend_env
         )
 
-    # Start Central DB Background Daemon
-    print("Starting Central DB Background Daemon...")
-    daemon_log = open(os.path.join(base_dir, "central_db_daemon.log"), "a")
-    if sys.platform == "win32":
-        subprocess.Popen(
-            [venv_python, "central_db_daemon.py"],
-            cwd=central_db_dir,
-            stdout=daemon_log,
-            stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-    else:
-        subprocess.Popen(
-            [venv_python, "central_db_daemon.py"],
-            cwd=central_db_dir,
-            stdout=daemon_log,
-            stderr=subprocess.STDOUT
-        )
-    
     # 2. Start Frontend (React)
     if os.path.exists(frontend_dir):
         print("Starting Frontend (React)...")
-        # Ensure React .env is configured correctly
+        # Ensure React .env is configured correctly for the Node Backend
         with open(os.path.join(frontend_dir, '.env'), 'w') as f:
-            f.write("REACT_APP_CENTRAL_URL=http://localhost:8000\n")
+            f.write("REACT_APP_NODE_PORT=8000\n")
             f.write("PORT=3000\n")
             
         frontend_log = open(os.path.join(base_dir, "frontend.log"), "a")
+        
+        # Inject our CRA Webpack bug fixes into the environment
+        react_env = os.environ.copy()
+        react_env["ALLOWED_HOSTS"] = "localhost"
+        react_env["HOST"] = "localhost"
+        react_env["DANGEROUSLY_DISABLE_HOST_CHECK"] = "true"
         if sys.platform == "win32":
             subprocess.Popen(
                 "npm start",
                 cwd=frontend_dir,
                 stdout=frontend_log,
                 stderr=subprocess.STDOUT,
+                env=react_env,
                 shell=True,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
@@ -89,6 +82,7 @@ def main():
                 cwd=frontend_dir,
                 stdout=frontend_log,
                 stderr=subprocess.STDOUT,
+                env=react_env,
                 shell=True
             )
 
