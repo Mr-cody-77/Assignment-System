@@ -48,8 +48,7 @@ def run_command(command, cwd, name, env_vars=None):
     if name == "React Frontend":
         process_env["ALLOWED_HOSTS"] = "localhost"
         process_env["HOST"] = "localhost"
-        if "DANGEROUSLY_DISABLE_HOST_CHECK" in process_env:
-            del process_env["DANGEROUSLY_DISABLE_HOST_CHECK"]
+        process_env["DANGEROUSLY_DISABLE_HOST_CHECK"] = "true"
 
     
     try:
