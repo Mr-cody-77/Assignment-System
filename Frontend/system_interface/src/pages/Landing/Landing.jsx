@@ -126,11 +126,13 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className={styles.footer}>
-        © 2025 Assignment System. Built for distributed education.
-      </footer>
-    </div>
+        {/* =========================================================================
+          Footer 
+        ========================================================================= */}
+        <footer className={styles.footer}>
+          &copy; personel project 2026 Assignment system
+        </footer>
+      </div>
   );
 };
 
