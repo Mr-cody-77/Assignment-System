@@ -77,12 +77,21 @@ const TeacherDashboard = () => {
 
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
+    
+    const start = new Date(schedule.startTime);
+    const end = new Date(schedule.endTime);
+    
+    if (end <= start) {
+      setScheduleMessage('Error: End Time must be strictly after Start Time.');
+      return;
+    }
+    
     setScheduleLoading(true);
     setScheduleMessage('');
     try {
       // Inputs are in local time, converting to ISO string (UTC) for backend
-      const startIso = new Date(schedule.startTime).toISOString();
-      const endIso = new Date(schedule.endTime).toISOString();
+      const startIso = start.toISOString();
+      const endIso = end.toISOString();
       await setSchedule(startIso, endIso);
       setScheduleMessage('Schedule updated successfully!');
     } catch (error) {
