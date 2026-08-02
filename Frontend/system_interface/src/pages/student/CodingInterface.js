@@ -6,7 +6,7 @@ import Sidebar from '../../components/Sidebar';
 
 const LANGUAGES = [
   { value: 'python',     label: 'Python 3',    monaco: 'python',     starter: '# Write your Python solution here\n\ndef solve():\n    pass\n\nsolve()\n' },
-  { value: 'cpp',        label: 'C++17',        monaco: 'cpp',        starter: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Read input from stdin (e.g. cin >> a >> b;)\n    // Print output to stdout (e.g. cout << result << endl;)\n    // Your solution here\n    \n    return 0;\n}\n' },
+  { value: 'cpp',        label: 'C / C++',        monaco: 'cpp',        starter: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Read input from stdin (e.g. cin >> a >> b;)\n    // Print output to stdout (e.g. cout << result << endl;)\n    // Your solution here\n    \n    return 0;\n}\n' },
   { value: 'java',       label: 'Java 17',      monaco: 'java',       starter: 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Your solution\n    }\n}\n' },
   { value: 'javascript', label: 'JavaScript',   monaco: 'javascript', starter: 'const readline = require("readline");\nconst rl = readline.createInterface({ input: process.stdin });\nlet lines = [];\nrl.on("line", l => lines.push(l));\nrl.on("close", () => {\n    // Your solution using lines[]\n});\n' },
 ];
@@ -220,7 +220,20 @@ export default function CodingInterface() {
                 className="form-select"
                 style={{width:'auto',padding:'6px 12px'}}
                 value={lang}
-                onChange={e => { setLang(e.target.value); setCode(LANGUAGES.find(l=>l.value===e.target.value)?.starter||''); }}
+                onChange={e => {
+                  const newLang = e.target.value;
+                  const newStarter = LANGUAGES.find(l => l.value === newLang)?.starter || '';
+                  
+                  const isDirty = code && !LANGUAGES.map(l => l.starter).includes(code);
+                  if (isDirty) {
+                    if (!window.confirm("Changing the language will delete your current code. Are you sure you want to proceed?")) {
+                      return;
+                    }
+                  }
+                  
+                  setLang(newLang);
+                  setCode(newStarter);
+                }}
               >
                 {LANGUAGES.filter(l => !problem.allowed_languages?.length || problem.allowed_languages.includes(l.value))
                   .map(l => <option key={l.value} value={l.value}>{l.label}</option>)}

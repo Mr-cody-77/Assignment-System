@@ -193,12 +193,6 @@ const AssignmentDetails = () => {
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
     localStorage.setItem(`language_cache_${id}`, lang);
-    // Apply template if code is empty or is still a template
-    if (!code || Object.values(TEMPLATES).includes(code)) {
-      const templateCode = TEMPLATES[lang] || '';
-      setCode(templateCode);
-      localStorage.setItem(`code_cache_${id}`, templateCode);
-    }
   };
 
   const handleRun = async () => {

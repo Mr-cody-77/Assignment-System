@@ -95,7 +95,7 @@ export const getStatusBadgeClass = (status) => {
 export const getLanguageLabel = (lang) => {
   const map = {
     python: 'Python',
-    cpp: 'C++',
+    cpp: 'C / C++',
     java: 'Java',
     javascript: 'JavaScript',
     js: 'JavaScript',
