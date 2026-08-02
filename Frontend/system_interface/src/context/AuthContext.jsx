@@ -15,6 +15,7 @@ import {
   normalizeAuthTokens,
   normalizeAuthUser,
   storeAuthSession,
+  backendRequest,
 } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -91,7 +92,12 @@ export const AuthProvider = ({ children }) => {
     return userObj;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await backendRequest.post('/api/stop_system/').catch(() => {});
+    } catch (e) {
+      console.warn("Failed to stop local backend:", e);
+    }
     clearAuthStorage();
     setUser(null);
     setAccessToken(null);

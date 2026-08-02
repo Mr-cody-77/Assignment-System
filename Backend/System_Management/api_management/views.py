@@ -272,4 +272,26 @@ class LocalRunView(APIView):
                 {"error": str(e)},
                 status=status
             )
+
+class StopSystemView(APIView):
+    def post(self, request):
+        import threading
+        import time
+        import subprocess
+
+        def kill_later():
+            time.sleep(1.0)
+            # Find Assignment-System root
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            stop_script = os.path.join(base_dir, "stop_system.bat")
+            if os.path.exists(stop_script):
+                # Run the batch file to clean up processes
+                subprocess.Popen([stop_script], shell=True, cwd=base_dir)
+            else:
+                # Fallback to direct taskkill
+                subprocess.run("taskkill /F /IM python.exe /T", shell=True)
+                subprocess.run("taskkill /F /IM node.exe /T", shell=True)
+
+        threading.Thread(target=kill_later, daemon=True).start()
+        return Response({"status": "stopping"}, status=status.HTTP_200_OK)
 

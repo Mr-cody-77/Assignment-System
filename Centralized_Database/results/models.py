@@ -39,6 +39,8 @@ class Result(models.Model):
         auto_now_add=True
     )
 
+    emailed = models.BooleanField(default=False)
+
     class Meta:
         ordering = ['-submitted_at']
 
@@ -107,6 +109,7 @@ class PlagiarismDetected(models.Model):
     question_id = models.CharField(max_length=100)
     similarity_score = models.FloatField()
     detected_at = models.DateTimeField(auto_now_add=True)
+    emailed = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-detected_at']

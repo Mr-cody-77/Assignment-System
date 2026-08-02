@@ -38,13 +38,14 @@ def trigger_email_daemon(schedule_id):
     
     for student in students:
         # 1. Fetch their results
-        results = Result.objects.filter(student=student)
-        if not results.exists():
-            continue
+        results = Result.objects.filter(student=student, emailed=False)
             
         # 2. Check Plagiarism status
-        plagiarised_incidents = PlagiarismDetected.objects.filter(flagged_student_id=student)
-        helped_incidents = PlagiarismDetected.objects.filter(copied_from_student_roll=student.roll_number)
+        plagiarised_incidents = PlagiarismDetected.objects.filter(flagged_student_id=student, emailed=False)
+        helped_incidents = PlagiarismDetected.objects.filter(copied_from_student_roll=student.roll_number, emailed=False)
+        
+        if not results.exists() and not plagiarised_incidents.exists() and not helped_incidents.exists():
+            continue
         
         subject = "Your Test Results and Plagiarism Check Status"
         
@@ -82,5 +83,9 @@ def trigger_email_daemon(schedule_id):
                 fail_silently=False,
             )
             logger.info(f"Sent email to {student.email} ({student.roll_number})")
+            
+            results.update(emailed=True)
+            plagiarised_incidents.update(emailed=True)
+            helped_incidents.update(emailed=True)
         except Exception as e:
             logger.error(f"Failed to send email to {student.email}: {e}")
