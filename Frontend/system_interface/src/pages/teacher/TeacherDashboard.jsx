@@ -11,6 +11,7 @@ import { getNodeInfo } from '../../services/nodeService';
 import { getTaskStatus } from '../../services/taskService';
 import { getSchedule, setSchedule } from '../../services/scheduleService';
 import { formatDate, formatScore, getStatusBadgeClass, formatStatus } from '../../utils/formatters';
+import ChangePasswordModal from '../../components/common/ChangePasswordModal';
 import styles from './TeacherDashboard.module.css';
 
 const TeacherDashboard = () => {
@@ -25,6 +26,8 @@ const TeacherDashboard = () => {
   const [schedule, setScheduleData] = useState({ startTime: '', endTime: '', isActive: true });
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleMessage, setScheduleMessage] = useState('');
+  
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -107,6 +110,7 @@ const TeacherDashboard = () => {
     { icon: '🖥️', label: 'Node Monitor', desc: 'Monitor computing nodes', path: '/teacher/nodes', color: '#3b82f6' },
     { icon: '👤', label: 'Add User', desc: 'Add students or teachers', path: '/teacher/add-user', color: '#f59e0b' },
     { icon: '🔍', label: 'Code Review', desc: 'Review student code', path: '/teacher/code-review', color: '#8b5cf6' },
+    { icon: '🔑', label: 'Change Password', desc: 'Update your password', path: 'change-password', color: '#eab308', action: () => setIsPasswordModalOpen(true) },
   ];
 
   return (
@@ -185,7 +189,7 @@ const TeacherDashboard = () => {
               <div
                 key={a.path}
                 className={styles.actionCard}
-                onClick={() => navigate(a.path)}
+                onClick={() => a.action ? a.action() : navigate(a.path)}
                 role="button"
                 tabIndex={0}
               >
@@ -241,6 +245,10 @@ const TeacherDashboard = () => {
 
         </div>
       </div>
+      
+      {isPasswordModalOpen && (
+        <ChangePasswordModal onClose={() => setIsPasswordModalOpen(false)} />
+      )}
     </div>
   );
 };

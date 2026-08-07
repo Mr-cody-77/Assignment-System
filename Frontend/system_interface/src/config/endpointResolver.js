@@ -21,6 +21,7 @@ export const endpoints = {
   addStudent: () => `${central()}/api/users/add_student/`,
   addTeacher: () => `${central()}/api/users/add_teacher/`,
   updateEmail: () => `${central()}/api/users/update_email/`,
+  changePassword: () => `${central()}/api/users/change_password/`,
 
   // ── Tests & Questions (Central Server) ───────────────────
   tests: () => `${central()}/api/tests/`,

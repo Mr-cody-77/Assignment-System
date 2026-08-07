@@ -10,6 +10,7 @@ import { getAllAssignments } from '../../services/assignmentService';
 import { getTaskStatus } from '../../services/taskService';
 import { getAllTests, getSubmittedTests } from '../../services/testService';
 import Timer from '../../components/Timer/Timer';
+import ChangePasswordModal from '../../components/common/ChangePasswordModal';
 import styles from './StudentDashboard.module.css';
 
 const StudentDashboard = () => {
@@ -21,6 +22,7 @@ const StudentDashboard = () => {
   const [taskCounts, setTaskCounts] = useState({ submitted: 0, pending: 0, running: 0 });
   const [liveTest, setLiveTest] = useState(null);
   const [submittedTestIds, setSubmittedTestIds] = useState([]);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   const examActive = localStorage.getItem('exam_active') === 'true';
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
@@ -139,10 +141,22 @@ const StudentDashboard = () => {
                 <div style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>Track your submitted tasks live</div>
               </div>
             </div>
+
+            <div className={styles.actionCard} onClick={() => setIsPasswordModalOpen(true)} role="button" tabIndex={0}>
+              <div className={styles.actionIcon} style={{ background: 'rgba(99,102,241,0.15)' }}>🔑</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>Change Password</div>
+                <div style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>Update your account password</div>
+              </div>
+            </div>
           </div>
 
         </div>
       </div>
+      
+      {isPasswordModalOpen && (
+        <ChangePasswordModal onClose={() => setIsPasswordModalOpen(false)} />
+      )}
     </div>
   );
 };

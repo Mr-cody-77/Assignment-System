@@ -6,6 +6,7 @@ from .views import (
     add_teacher,
     refresh_view,
     update_email,
+    change_password,
 )
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
     path('add_student/', add_student),
     path('add_teacher/', add_teacher),
     path('update_email/', update_email),
+    path('change_password/', change_password),
 ]
