@@ -279,6 +279,7 @@ class StopSystemView(APIView):
         import time
         import subprocess
         import platform
+        import os
 
         def kill_later():
             time.sleep(1.0)

@@ -168,14 +168,14 @@ def lock_internet():
                 logging.info("Internet locked using explicit public IP blocks.")
         else:
             # Linux iptables lockdown
-            # Allow loopback (localhost)
-            subprocess.run(["iptables", "-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT"])
+            # Insert rules at the top of the OUTPUT chain so they take precedence
+            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-j", "DROP"])
             # Allow LAN traffic (adjust as needed, commonly 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12)
-            subprocess.run(["iptables", "-A", "OUTPUT", "-d", "192.168.0.0/16", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-A", "OUTPUT", "-d", "10.0.0.0/8", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-A", "OUTPUT", "-d", "172.16.0.0/12", "-j", "ACCEPT"])
-            # Drop everything else
-            res = subprocess.run(["iptables", "-A", "OUTPUT", "-j", "DROP"], capture_output=True, text=True)
+            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-d", "172.16.0.0/12", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-d", "10.0.0.0/8", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-d", "192.168.0.0/16", "-j", "ACCEPT"])
+            # Allow loopback (localhost)
+            res = subprocess.run(["iptables", "-I", "OUTPUT", "1", "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
             if res.returncode != 0:
                 logging.error(f"Failed to lock internet. iptables error: {res.stderr}")
             else:
