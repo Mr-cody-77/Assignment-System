@@ -67,7 +67,7 @@ const Login = () => {
         {/* Logo */}
         <div className="auth-logo-ring">⚡</div>
         <h1 className="auth-title">Sign In</h1>
-        <p className="auth-sub">Welcome back to Assignment System</p>
+        <p className="auth-sub">Welcome back to CodeMesh</p>
 
         {/* Error */}
         {error && (

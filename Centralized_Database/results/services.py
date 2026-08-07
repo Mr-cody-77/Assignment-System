@@ -12,6 +12,7 @@ def store_result(student, data):
             'passed_testcases': data.get('passed_testcases', 0),
             'total_testcases': data.get('total_testcases', 0),
             'execution_time': data.get('execution_time', 0),
+            'emailed': False,
         }
     )
     return result
@@ -53,7 +54,7 @@ def trigger_email_daemon(schedule_id):
         msg += "The test lockdown has ended. Here are your final results:\n\n"
         
         for res in results:
-            msg += f"- Question {res.question_id}: {res.score} points (Status: {res.status})\n"
+            msg += f"- Question {res.question_id}: {res.score} points (Status: {res.status}) - Test Cases Passed: {res.passed_testcases}/{res.total_testcases}\n"
             
         msg += "\n--- PLAGIARISM CHECK ---\n"
         

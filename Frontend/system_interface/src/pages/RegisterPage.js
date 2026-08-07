@@ -44,9 +44,9 @@ export default function RegisterPage() {
       <div className="auth-bg-blur" style={{width:400,height:400,background:'#8b5cf6',bottom:-100,right:-100}} />
 
       <div className="auth-card" style={{maxWidth:520}}>
-        <div className="auth-logo-ring">🚀</div>
+        <div className="auth-logo-ring">⚡</div>
         <h1 className="auth-title">Create Account</h1>
-        <p className="auth-sub">Join CodeLab — Decentralized Assignment System</p>
+        <p className="auth-sub">Join CodeMesh — Decentralized Code Evaluation</p>
 
         {error && <div className="alert alert-error">{error}</div>}
 

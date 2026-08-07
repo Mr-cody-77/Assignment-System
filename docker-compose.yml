@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: assignment_system
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: PostgreSQL@pass77
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=assignment_system
+      - DB_USER=postgres
+      - DB_PASSWORD=PostgreSQL@pass77
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

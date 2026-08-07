@@ -9,10 +9,9 @@ net session >nul 2>&1
 if %errorLevel% == 0 (
     echo [OK] Administrator privileges confirmed.
 ) else (
-    echo [ERROR] Current permissions inadequate.
-    echo Please right-click this script and select "Run as Administrator".
-    pause
-    exit /b 1
+    echo [INFO] Elevating privileges to Administrator...
+    powershell -Command "Start-Process cmd -ArgumentList '/c \"%~s0\"' -Verb RunAs"
+    exit /b
 )
 
 :: Get current directory

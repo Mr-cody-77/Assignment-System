@@ -52,7 +52,7 @@ function DiscoveryLoadingScreen({ message }) {
             marginBottom: 8,
           }}
         >
-          Connecting to Assignment System
+          Connecting to CodeMesh
         </h2>
         <p
           style={{

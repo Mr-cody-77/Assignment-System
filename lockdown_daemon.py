@@ -6,6 +6,7 @@ import os
 import sys
 import json
 from datetime import datetime, timezone, timedelta
+import platform
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -134,49 +135,82 @@ def is_ist_now_in_range(start_time_iso, end_time_iso):
         return False
 
 def is_admin():
-    try:
-        import ctypes
-        return ctypes.windll.shell32.IsUserAnAdmin() != 0
-    except Exception:
-        return False
+    if platform.system() == 'Windows':
+        try:
+            import ctypes
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+        except Exception:
+            return False
+    else:
+        try:
+            return os.geteuid() == 0
+        except Exception:
+            return False
 
 def lock_internet():
     try:
-        script = (
-            "$ErrorActionPreference = 'Stop'; "
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
-            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-9.255.255.255', '11.0.0.0-126.255.255.255', '128.0.0.0-172.15.255.255', '172.32.0.0-192.167.255.255', '192.169.0.0-223.255.255.255', '240.0.0.0-255.255.255.254' -Enabled True; "
-            "New-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -Direction Outbound -Action Block -RemoteAddress '::/0' -Enabled True;"
-        )
-        res1 = subprocess.run([
-            'powershell', '-Command', script
-        ], capture_output=True, text=True)
-        
-        if res1.returncode != 0:
-            logging.error(f"Failed to lock internet. res1: {res1.stderr}")
+        if platform.system() == 'Windows':
+            script = (
+                "$ErrorActionPreference = 'Stop'; "
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
+                "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-9.255.255.255', '11.0.0.0-126.255.255.255', '128.0.0.0-172.15.255.255', '172.32.0.0-192.167.255.255', '192.169.0.0-223.255.255.255', '240.0.0.0-255.255.255.254' -Enabled True; "
+                "New-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -Direction Outbound -Action Block -RemoteAddress '::/0' -Enabled True;"
+            )
+            res1 = subprocess.run([
+                'powershell', '-Command', script
+            ], capture_output=True, text=True)
+            
+            if res1.returncode != 0:
+                logging.error(f"Failed to lock internet. res1: {res1.stderr}")
+            else:
+                logging.info("Internet locked using explicit public IP blocks.")
         else:
-            logging.info("Internet locked using explicit public IP blocks.")
+            # Linux iptables lockdown
+            # Allow loopback (localhost)
+            subprocess.run(["iptables", "-A", "OUTPUT", "-o", "lo", "-j", "ACCEPT"])
+            # Allow LAN traffic (adjust as needed, commonly 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12)
+            subprocess.run(["iptables", "-A", "OUTPUT", "-d", "192.168.0.0/16", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-A", "OUTPUT", "-d", "10.0.0.0/8", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-A", "OUTPUT", "-d", "172.16.0.0/12", "-j", "ACCEPT"])
+            # Drop everything else
+            res = subprocess.run(["iptables", "-A", "OUTPUT", "-j", "DROP"], capture_output=True, text=True)
+            if res.returncode != 0:
+                logging.error(f"Failed to lock internet. iptables error: {res.stderr}")
+            else:
+                logging.info("Internet locked via iptables.")
     except Exception as e:
         logging.error(f"Failed to lock internet: {e}")
 
 def unlock_internet():
     try:
-        script = (
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -ErrorAction SilentlyContinue; "
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
-            "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue;"
-        )
-        res1 = subprocess.run([
-            'powershell', '-Command', script
-        ], capture_output=True, text=True)
-        
-        if res1.returncode != 0 and "No MSFT_NetFirewallRule" not in res1.stderr:
-            logging.error(f"Failed to unlock internet. res1: {res1.stderr}")
+        if platform.system() == 'Windows':
+            script = (
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -ErrorAction SilentlyContinue; "
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue;"
+            )
+            res1 = subprocess.run([
+                'powershell', '-Command', script
+            ], capture_output=True, text=True)
+            
+            if res1.returncode != 0 and "No MSFT_NetFirewallRule" not in res1.stderr:
+                logging.error(f"Failed to unlock internet. res1: {res1.stderr}")
+            else:
+                logging.info("Internet unlocked.")
         else:
-            logging.info("Internet unlocked.")
+            # Linux iptables unlock
+            subprocess.run(["iptables", "-D", "OUTPUT", "-o", "lo", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "192.168.0.0/16", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "10.0.0.0/8", "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "172.16.0.0/12", "-j", "ACCEPT"])
+            res = subprocess.run(["iptables", "-D", "OUTPUT", "-j", "DROP"], capture_output=True, text=True)
+            if res.returncode != 0 and "Bad rule" not in res.stderr:
+                logging.error(f"Failed to unlock internet. iptables error: {res.stderr}")
+            else:
+                logging.info("Internet unlocked via iptables.")
     except Exception as e:
         logging.error(f"Failed to unlock internet: {e}")
 

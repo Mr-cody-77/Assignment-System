@@ -1,9 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Landing.module.css';
+import { centralRequest } from '../../services/api';
 
 const Landing = () => {
   const navigate = useNavigate();
+
+  const handleExit = async () => {
+    if (window.confirm("Are you sure you want to shut down the Assignment System? This will stop all background servers.")) {
+      try {
+        await centralRequest.post('/api/stop_system/');
+        alert("System is shutting down. You can now close this window.");
+      } catch (err) {
+        alert("System is shutting down or has already been stopped.");
+      }
+    }
+  };
 
   return (
     <div style={{ background: 'var(--clr-bg)', minHeight: '100vh' }}>
@@ -11,11 +23,14 @@ const Landing = () => {
       <nav className={styles.navbar}>
         <div className={styles.navLogo}>
           <div className={styles.navLogoIcon}>⚡</div>
-          <span className={styles.navLogoText}>Assignment System</span>
+          <span className={styles.navLogoText}>CodeMesh</span>
         </div>
         <div className={styles.navActions}>
+          <button className="btn btn-error btn-sm" onClick={handleExit} style={{ backgroundColor: 'var(--clr-danger)', color: 'white' }}>
+            Exit System
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/nodes')}>
-            🔗 Nodes
+            Nodes
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/login')}>
             Sign In →
@@ -37,8 +52,8 @@ const Landing = () => {
         <div className={styles.heroContent}>
           <div className={styles.heroBadge}>✨ Distributed Code Evaluation Platform</div>
           <h1 className={styles.heroTitle}>
-            Welcome to the<br />
-            <span className={styles.gradientText}>Assignment System</span>
+            Welcome to<br />
+            <span className={styles.gradientText}>CodeMesh</span>
           </h1>
           <p className={styles.heroSubtitle}>
             A distributed, real-time code evaluation platform built for modern
@@ -46,15 +61,15 @@ const Landing = () => {
           </p>
           <div className={styles.heroActions}>
             <button className="btn btn-primary btn-lg" onClick={() => navigate('/login')}>
-              🚀 Get Started
+              Get Started
             </button>
             <button className="btn btn-secondary btn-lg" onClick={() => navigate('/nodes')}>
-              🖥️ View Connected Nodes
+              View Connected Nodes
             </button>
           </div>
 
           <div className={styles.statsRow}>
-            <div className={styles.statItem}>⚡ <strong>10+</strong> Languages</div>
+            <div className={styles.statItem}>⚡ <strong>4+</strong> Languages</div>
             <div className={styles.statDivider} />
             <div className={styles.statItem}>🔄 <strong>Real-time</strong> Evaluation</div>
             <div className={styles.statDivider} />
@@ -130,7 +145,7 @@ const Landing = () => {
           Footer 
         ========================================================================= */}
         <footer className={styles.footer}>
-          &copy; personel project 2026 Assignment system
+          &copy; personal project 2026 CodeMesh
         </footer>
       </div>
   );

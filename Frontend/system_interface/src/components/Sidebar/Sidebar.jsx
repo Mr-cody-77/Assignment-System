@@ -69,7 +69,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
         <div className={styles.brand}>
           <div className={styles.brandIcon}>AE</div>
           <div>
-            <div className={styles.brandName}>Assignment System</div>
+            <div className={styles.brandName}>CodeMesh</div>
             <div className={styles.brandSub}>Eval Platform</div>
           </div>
         </div>

@@ -201,11 +201,14 @@ def plagiarism_ingest(request):
                 )
                 continue
 
-            PlagiarismDetected.objects.create(
+            PlagiarismDetected.objects.update_or_create(
                 flagged_student_id=flagged_user,
                 copied_from_student_roll=other.roll_number,
                 question_id=question_id,
-                similarity_score=round(score, 4),
+                defaults={
+                    'similarity_score': round(score, 4),
+                    'emailed': False
+                }
             )
             flagged_count += 1
             plagiarism_logger.info(

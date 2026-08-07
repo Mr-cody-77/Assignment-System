@@ -278,19 +278,19 @@ class StopSystemView(APIView):
         import threading
         import time
         import subprocess
+        import platform
 
         def kill_later():
             time.sleep(1.0)
-            # Find Assignment-System root
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            stop_script = os.path.join(base_dir, "stop_system.bat")
-            if os.path.exists(stop_script):
-                # Run the batch file to clean up processes
-                subprocess.Popen([stop_script], shell=True, cwd=base_dir)
-            else:
-                # Fallback to direct taskkill
-                subprocess.run("taskkill /F /IM python.exe /T", shell=True)
+            # Find Assignment-System root (views.py -> api_management -> System_Management -> Backend -> Assignment-System)
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            
+            if platform.system() == 'Windows':
                 subprocess.run("taskkill /F /IM node.exe /T", shell=True)
+                subprocess.run("taskkill /F /IM python.exe /T", shell=True)
+            else:
+                subprocess.run("pkill -f node", shell=True)
+                subprocess.run("pkill -f python", shell=True)
 
         threading.Thread(target=kill_later, daemon=True).start()
         return Response({"status": "stopping"}, status=status.HTTP_200_OK)

@@ -112,11 +112,14 @@ If no plagiarism is found, output: []
                     if score >= 0.75:
                         try:
                             flagged_user = User.objects.get(roll_number=flagged_roll)
-                            PlagiarismDetected.objects.create(
+                            PlagiarismDetected.objects.update_or_create(
+                                question_id=q_id,
                                 flagged_student_id=flagged_user,
                                 copied_from_student_roll=copied_from,
-                                question_id=q_id,
-                                similarity_score=score
+                                defaults={
+                                    'similarity_score': score,
+                                    'emailed': False
+                                }
                             )
                             logger.info(f"LLM flagged {flagged_roll} copying from {copied_from} for Q{q_id} (Score: {score})")
                         except User.DoesNotExist:

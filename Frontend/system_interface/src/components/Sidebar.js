@@ -37,7 +37,7 @@ export default function Sidebar() {
         <div className="sidebar-brand-logo">⚡</div>
         <div>
           <div className="sidebar-brand-name">CodeLab</div>
-          <div className="sidebar-brand-sub">Assignment System</div>
+          <div className="sidebar-brand-sub">CodeMesh</div>
         </div>
       </div>
 

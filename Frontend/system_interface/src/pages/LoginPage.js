@@ -36,7 +36,7 @@ export default function LoginPage() {
       <div className="auth-card">
         <div className="auth-logo-ring">💻</div>
         <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-sub">Sign in to CodeLab Assignment System</p>
+        <p className="auth-sub">Sign in to CodeMesh</p>
 
         {error && <div className="alert alert-error">{error}</div>}
 
