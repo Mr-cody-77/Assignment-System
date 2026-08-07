@@ -7,12 +7,16 @@ def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Paths
-    venv_python = os.path.join(base_dir, ".venv", "Scripts", "python.exe")
+    if sys.platform == "win32":
+        venv_python = os.path.join(base_dir, ".venv", "Scripts", "python.exe")
+    else:
+        venv_python = os.path.join(base_dir, ".venv", "bin", "python")
+        
     backend_dir = os.path.join(base_dir, "Backend", "System_Management")
     frontend_dir = os.path.join(base_dir, "Frontend", "system_interface")
     
     if not os.path.exists(venv_python):
-        venv_python = "python"  # fallback to system python
+        venv_python = "python3" if sys.platform != "win32" else "python"  # fallback
         
     print("Starting Assignment System...")
     
