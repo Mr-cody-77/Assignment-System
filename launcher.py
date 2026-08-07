@@ -52,7 +52,8 @@ def main():
             cwd=backend_dir,
             stdout=node_log,
             stderr=subprocess.STDOUT,
-            env=backend_env
+            env=backend_env,
+            start_new_session=True
         )
 
     # 2. Start Frontend (React)
@@ -87,7 +88,8 @@ def main():
                 stdout=frontend_log,
                 stderr=subprocess.STDOUT,
                 env=react_env,
-                shell=True
+                shell=True,
+                start_new_session=True
             )
 
 if __name__ == "__main__":
