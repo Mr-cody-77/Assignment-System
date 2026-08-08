@@ -93,11 +93,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await backendRequest.post('/api/stop_system/').catch(() => {});
-    } catch (e) {
-      console.warn("Failed to stop local backend:", e);
-    }
     clearAuthStorage();
     setUser(null);
     setAccessToken(null);
