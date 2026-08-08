@@ -164,6 +164,9 @@ export const clearAuthStorage = () => {
   removeStorage(LEGACY_USER_KEY);
   removeStorage(ACCESS_TOKEN_KEY);
   removeStorage(REFRESH_TOKEN_KEY);
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    window.sessionStorage.clear();
+  }
   dispatchAuthStorageEvent({ type: 'logout' });
 };
 
