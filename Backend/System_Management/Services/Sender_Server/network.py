@@ -2,6 +2,14 @@ import logging
 import socket
 import threading
 import time
+import sys
+
+if sys.platform == 'win32':
+    import asyncio
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
 
 from Services.Sender_Server.runtime import runtime
 from Services.Receiver_Server.runtime import runtime as receiver_runtime

@@ -3,6 +3,14 @@ import socket
 import threading
 import logging
 import time  # <-- Added missing import
+import sys
+
+if sys.platform == 'win32':
+    import asyncio
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
 
 from zeroconf import Zeroconf, ServiceInfo
 
