@@ -56,11 +56,11 @@ const AssignmentDetails = () => {
   const [error, setError] = useState('');
 
   const [code, setCode] = useState(() => {
-    const cached = localStorage.getItem(`code_cache_${id}`);
+    const cached = sessionStorage.getItem(`code_cache_${id}`);
     return cached || TEMPLATES.python;
   });
   const [language, setLanguage] = useState(() => {
-    const cached = localStorage.getItem(`language_cache_${id}`);
+    const cached = sessionStorage.getItem(`language_cache_${id}`);
     return cached || 'python';
   });
   const [editorTheme, setEditorTheme] = useState('vs-dark');
@@ -105,8 +105,8 @@ const AssignmentDetails = () => {
           addToast('Auto-submitting your code solutions...', 'info');
           
           for (const q of testData.questions) {
-            const cachedCode = localStorage.getItem(`code_cache_${q.id}`);
-            const cachedLang = localStorage.getItem(`language_cache_${q.id}`) || 'python';
+            const cachedCode = sessionStorage.getItem(`code_cache_${q.id}`);
+            const cachedLang = sessionStorage.getItem(`language_cache_${q.id}`) || 'python';
             if (cachedCode) {
               try {
                 await submitTask({
@@ -179,7 +179,7 @@ const AssignmentDetails = () => {
 
   // Sync the code editor when the question ID changes
   useEffect(() => {
-    const cached = localStorage.getItem(`code_cache_${id}`);
+    const cached = sessionStorage.getItem(`code_cache_${id}`);
     setCode(cached || TEMPLATES[language] || TEMPLATES.python);
     setTerminalResults(null);
     setSubmittedTaskId(null);
@@ -187,12 +187,12 @@ const AssignmentDetails = () => {
 
   const handleCodeChange = (newCode) => {
     setCode(newCode);
-    localStorage.setItem(`code_cache_${id}`, newCode);
+    sessionStorage.setItem(`code_cache_${id}`, newCode);
   };
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
-    localStorage.setItem(`language_cache_${id}`, lang);
+    sessionStorage.setItem(`language_cache_${id}`, lang);
   };
 
   const handleRun = async () => {

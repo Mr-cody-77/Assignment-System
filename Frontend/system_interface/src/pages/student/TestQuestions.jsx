@@ -443,8 +443,8 @@ const TestQuestions = () => {
       };
 
       for (const q of test.questions) {
-        const cachedCode = localStorage.getItem(`code_cache_${q.id}`);
-        const cachedLang = localStorage.getItem(`language_cache_${q.id}`) || 'python';
+        const cachedCode = sessionStorage.getItem(`code_cache_${q.id}`);
+        const cachedLang = sessionStorage.getItem(`language_cache_${q.id}`) || 'python';
         // We will just submit the cached code for all questions, 
         // the backend logic handles overriding/processing them correctly.
         if (cachedCode) {
