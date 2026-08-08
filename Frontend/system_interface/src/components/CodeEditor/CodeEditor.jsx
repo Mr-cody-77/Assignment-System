@@ -22,6 +22,10 @@ const TEMPLATES = {
   javascript: '// Write your JavaScript solution here\n\nfunction solution() {\n    \n}\n',
 };
 
+// Explicitly tell monaco-editor to load assets from our local folder instead of the internet CDN.
+// This MUST be called at the top level before the component renders.
+loader.config({ paths: { vs: (process.env.PUBLIC_URL || '') + '/monaco/vs' } });
+
 const CodeEditor = ({
   value,
   onChange,
@@ -45,9 +49,6 @@ const CodeEditor = ({
         setMonacoError(true);
       }
     }, 5000); // Increased timeout slightly for local loading
-
-    // Explicitly tell monaco-editor to load assets from our local folder instead of the internet CDN
-    loader.config({ paths: { vs: process.env.PUBLIC_URL + '/monaco/vs' } });
 
     loader.init()
       .then(() => {
