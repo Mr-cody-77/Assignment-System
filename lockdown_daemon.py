@@ -238,19 +238,35 @@ def lock_internet(target_url=None):
             else:
                 logging.info("Internet locked using explicit public IP blocks.")
         else:
-            # Linux iptables lockdown
-            # Insert rules at the top of the OUTPUT chain so they take precedence
-            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-j", "DROP"])
-            # Allow LAN traffic (adjust as needed, commonly 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12)
-            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-d", "172.16.0.0/12", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-d", "10.0.0.0/8", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-d", "192.168.0.0/16", "-j", "ACCEPT"])
-            # Allow loopback (localhost)
-            res = subprocess.run(["iptables", "-I", "OUTPUT", "1", "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
+            # Linux iptables lockdown using custom chain
+            subprocess.run(["iptables", "-N", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-F", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            
+            # Ensure the chain is called from OUTPUT
+            subprocess.run(["iptables", "-D", "OUTPUT", "-j", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-I", "OUTPUT", "1", "-j", "EXAM_LOCKDOWN"])
+            
+            res = subprocess.run(["iptables", "-A", "EXAM_LOCKDOWN", "-o", "lo", "-j", "ACCEPT"], capture_output=True, text=True)
+            for net in allowed_ipv4:
+                subprocess.run(["iptables", "-A", "EXAM_LOCKDOWN", "-d", net, "-j", "ACCEPT"])
+            subprocess.run(["iptables", "-A", "EXAM_LOCKDOWN", "-j", "DROP"])
+
+            try:
+                subprocess.run(["ip6tables", "-N", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-F", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-D", "OUTPUT", "-j", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-I", "OUTPUT", "1", "-j", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-A", "EXAM_LOCKDOWN", "-o", "lo", "-j", "ACCEPT"], stderr=subprocess.DEVNULL)
+                for net in allowed_ipv6:
+                    subprocess.run(["ip6tables", "-A", "EXAM_LOCKDOWN", "-d", net, "-j", "ACCEPT"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-A", "EXAM_LOCKDOWN", "-j", "DROP"], stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+                
             if res.returncode != 0:
                 logging.error(f"Failed to lock internet. iptables error: {res.stderr}")
             else:
-                logging.info("Internet locked via iptables.")
+                logging.info("Internet locked via iptables using dynamic whitelist custom chain.")
     except Exception as e:
         logging.error(f"Failed to lock internet: {e}")
 
@@ -273,15 +289,25 @@ def unlock_internet():
                 logging.info("Internet unlocked.")
         else:
             # Linux iptables unlock
-            subprocess.run(["iptables", "-D", "OUTPUT", "-o", "lo", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "192.168.0.0/16", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "10.0.0.0/8", "-j", "ACCEPT"])
-            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "172.16.0.0/12", "-j", "ACCEPT"])
-            res = subprocess.run(["iptables", "-D", "OUTPUT", "-j", "DROP"], capture_output=True, text=True)
-            if res.returncode != 0 and "Bad rule" not in res.stderr:
-                logging.error(f"Failed to unlock internet. iptables error: {res.stderr}")
-            else:
-                logging.info("Internet unlocked via iptables.")
+            subprocess.run(["iptables", "-D", "OUTPUT", "-j", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-F", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-X", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            
+            try:
+                subprocess.run(["ip6tables", "-D", "OUTPUT", "-j", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-F", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+                subprocess.run(["ip6tables", "-X", "EXAM_LOCKDOWN"], stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+                
+            # Clean up legacy rules just in case they were left behind by older daemon version
+            subprocess.run(["iptables", "-D", "OUTPUT", "-o", "lo", "-j", "ACCEPT"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "192.168.0.0/16", "-j", "ACCEPT"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "10.0.0.0/8", "-j", "ACCEPT"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-D", "OUTPUT", "-d", "172.16.0.0/12", "-j", "ACCEPT"], stderr=subprocess.DEVNULL)
+            subprocess.run(["iptables", "-D", "OUTPUT", "-j", "DROP"], stderr=subprocess.DEVNULL)
+            
+            logging.info("Internet unlocked via iptables.")
     except Exception as e:
         logging.error(f"Failed to unlock internet: {e}")
 
