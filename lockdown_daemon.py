@@ -147,16 +147,87 @@ def is_admin():
         except Exception:
             return False
 
-def lock_internet():
+def lock_internet(target_url=None):
     try:
+        import ipaddress
+        allowed_ipv4 = ['127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '224.0.0.0/4']
+        allowed_ipv6 = ['::1/128', 'fe80::/10', 'fc00::/7', 'ff00::/8']
+        
+        try:
+            import socket
+            hostname = socket.gethostname()
+            _, _, ip_list = socket.gethostbyname_ex(hostname)
+            for ip in ip_list:
+                try:
+                    ip_obj = ipaddress.IPv4Address(ip)
+                    if not ip_obj.is_loopback:
+                        net = ipaddress.IPv4Network(f"{ip}/24", strict=False)
+                        allowed_ipv4.append(str(net))
+                except Exception:
+                    pass
+        except Exception as e:
+            logging.warning(f"Could not get local IPs: {e}")
+            
+        if target_url:
+            db_ip = None
+            try:
+                import urllib.parse
+                import socket
+                host = urllib.parse.urlparse(target_url).hostname
+                if host:
+                    try:
+                        ip_obj = ipaddress.ip_address(host)
+                        db_ip = str(ip_obj)
+                    except ValueError:
+                        db_ip = socket.gethostbyname(host)
+            except Exception as e:
+                logging.warning(f"Could not resolve DB IP from {target_url}: {e}")
+                
+            if db_ip:
+                try:
+                    ip_obj = ipaddress.ip_address(db_ip)
+                    if ip_obj.version == 4:
+                        allowed_ipv4.append(f"{db_ip}/32")
+                    else:
+                        allowed_ipv6.append(f"{db_ip}/128")
+                except ValueError:
+                    pass
+                    
+        def get_block_ranges(allowed_ips, is_ipv6=False):
+            if is_ipv6:
+                networks = [ipaddress.IPv6Network(n, strict=False) for n in allowed_ips]
+                blocked = [ipaddress.IPv6Network('::/0')]
+            else:
+                networks = [ipaddress.IPv4Network(n, strict=False) for n in allowed_ips]
+                blocked = [ipaddress.IPv4Network('0.0.0.0/0')]
+                
+            for allowed in networks:
+                new_blocked = []
+                for b in blocked:
+                    if allowed.overlaps(b):
+                        if allowed.supernet_of(b):
+                            pass
+                        elif allowed.subnet_of(b):
+                            new_blocked.extend(list(b.address_exclude(allowed)))
+                    else:
+                        new_blocked.append(b)
+                blocked = new_blocked
+            return [str(net) for net in blocked]
+
+        ipv4_blocks = get_block_ranges(allowed_ipv4, is_ipv6=False)
+        ipv6_blocks = get_block_ranges(allowed_ipv6, is_ipv6=True)
+
         if platform.system() == 'Windows':
+            ipv4_str = "'" + "', '".join(ipv4_blocks) + "'"
+            ipv6_str = "'" + "', '".join(ipv6_blocks) + "'"
             script = (
                 "$ErrorActionPreference = 'Stop'; "
                 "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
                 "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
                 "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
-                "New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-9.255.255.255', '11.0.0.0-126.255.255.255', '128.0.0.0-172.15.255.255', '172.32.0.0-192.167.255.255', '192.169.0.0-223.255.255.255', '240.0.0.0-255.255.255.254' -Enabled True; "
-                "New-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -Direction Outbound -Action Block -RemoteAddress '::/0' -Enabled True;"
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -ErrorAction SilentlyContinue; "
+                f"New-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -Direction Outbound -Action Block -RemoteAddress {ipv4_str} -Enabled True; "
+                f"New-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -Direction Outbound -Action Block -RemoteAddress {ipv6_str} -Enabled True;"
             )
             res1 = subprocess.run([
                 'powershell', '-Command', script
@@ -268,7 +339,7 @@ def main():
                 should_lock = False
             
             if should_lock and not is_currently_locked:
-                lock_internet()
+                lock_internet(target_url)
                 is_currently_locked = True
             elif not should_lock and is_currently_locked:
                 unlock_internet()
