@@ -44,7 +44,10 @@ const CodeEditor = ({
         console.warn("Monaco loading timed out, falling back to textarea.");
         setMonacoError(true);
       }
-    }, 3000);
+    }, 5000); // Increased timeout slightly for local loading
+
+    // Explicitly tell monaco-editor to load assets from our local folder instead of the internet CDN
+    loader.config({ paths: { vs: process.env.PUBLIC_URL + '/monaco/vs' } });
 
     loader.init()
       .then(() => {
