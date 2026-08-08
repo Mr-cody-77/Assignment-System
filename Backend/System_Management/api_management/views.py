@@ -22,6 +22,16 @@ from api_management.services.node_info import handle_node_info
 from Services.Receiver_Server.worker_manager import (
     handle_accepted_task,
 )
+import time
+
+# Global variable to track the last heartbeat
+last_heartbeat = time.time()
+
+class HeartbeatView(APIView):
+    def post(self, request):
+        global last_heartbeat
+        last_heartbeat = time.time()
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
 
 class TaskSubmissionView(APIView):
     def post(self, request):

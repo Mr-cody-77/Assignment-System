@@ -19,6 +19,18 @@ def main():
         venv_python = "python3" if sys.platform != "win32" else "python"  # fallback
         
     print("Starting Assignment System...")
+
+    # Show loading popup on Linux
+    if sys.platform != "win32":
+        try:
+            subprocess.Popen([
+                "zenity", "--progress", "--pulsate", "--auto-close",
+                "--title=Assignment System", 
+                "--text=Starting Backend and Frontend servers...\nPlease wait...",
+                "--timeout=7"
+            ], stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
     
     # Run Updater
     updater_path = os.path.join(base_dir, "updater.bat")
