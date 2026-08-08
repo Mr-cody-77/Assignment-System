@@ -38,8 +38,22 @@ const StartExam = () => {
       localStorage.setItem('exam_active', 'true');
       localStorage.setItem('exam_duration', duration.toString());
       const endTime = Date.now() + duration * 60 * 1000;
-      localStorage.setItem('exam_end_time', endTime.toString());
       localStorage.setItem('exam_test_id', String(data.id));
+
+      // SECURE OFFLINE CACHE: Tell the local Assignment Node to aggressively pre-fetch 
+      // and cache the hidden test cases for these questions in case the network drops.
+      if (data.questions && data.questions.length > 0) {
+        const questionIds = data.questions.map(q => q.id);
+        const token = localStorage.getItem('access_token') || localStorage.getItem('legacy_token');
+        fetch('/api/cache-questions/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({ question_ids: questionIds })
+        }).catch(err => console.log('Offline cache pre-fetch failed', err));
+      }
 
       navigate('/student/tests');
     } catch (err) {

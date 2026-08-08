@@ -24,6 +24,11 @@ from Services.Receiver_Server.worker_manager import (
 )
 import time
 
+import urllib.request
+import json
+from api_management.models import CachedQuestion
+from Services.Sender_Server.runtime import runtime
+
 # Global variable to track the last heartbeat
 last_heartbeat = time.time()
 
@@ -32,6 +37,40 @@ class HeartbeatView(APIView):
         global last_heartbeat
         last_heartbeat = time.time()
         return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+class CacheQuestionsView(APIView):
+    def post(self, request):
+        question_ids = request.data.get("question_ids", [])
+        auth_header = request.headers.get("Authorization")
+        
+        if not runtime.database_server:
+            return Response({"error": "No database server connected"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+        db = runtime.database_server
+        cached_count = 0
+        
+        for qid in question_ids:
+            url = f"http://{db['ip']}:{db['port']}/api/questions/{qid}/"
+            try:
+                req = urllib.request.Request(url)
+                if auth_header:
+                    req.add_header("Authorization", auth_header)
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    q_data = json.loads(response.read().decode())
+                    
+                    # Update or create the cached question
+                    CachedQuestion.objects.update_or_create(
+                        question_id=str(qid),
+                        defaults={
+                            "test_cases": q_data.get("test_cases", []),
+                            "hidden_test_cases": q_data.get("hidden_test_cases", [])
+                        }
+                    )
+                    cached_count += 1
+            except Exception as e:
+                print(f"Failed to cache question {qid}: {e}")
+                
+        return Response({"status": "success", "cached_count": cached_count}, status=status.HTTP_200_OK)
 
 class TaskSubmissionView(APIView):
     def post(self, request):

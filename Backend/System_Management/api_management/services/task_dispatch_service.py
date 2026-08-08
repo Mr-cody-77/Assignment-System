@@ -7,6 +7,7 @@ from Services.Sender_Server.queue_manager import add_task
 from Services.Sender_Server.task_model import create_task
 from Services.Sender_Server.state import tasks, lock
 from Services.Sender_Server.runtime import runtime  # <-- Added to get Database IP
+from api_management.models import CachedQuestion
 
 logger = logging.getLogger("task.dispatch")
 
@@ -45,7 +46,14 @@ def submit_task(
                 task["test_cases"] = q_data.get("test_cases", [])
                 task["hidden_test_cases"] = q_data.get("hidden_test_cases", [])
         except Exception as e:
-            logger.error(f"Failed to fetch test cases for Q{question_id}: {e}")
+            logger.warning(f"Failed to fetch test cases from Central DB for Q{question_id}, falling back to local cache: {e}")
+            try:
+                cached_q = CachedQuestion.objects.get(question_id=str(question_id))
+                task["test_cases"] = cached_q.test_cases
+                task["hidden_test_cases"] = cached_q.hidden_test_cases
+                logger.info(f"Successfully loaded {len(cached_q.hidden_test_cases)} hidden test cases from offline cache.")
+            except CachedQuestion.DoesNotExist:
+                logger.error(f"No offline cache found for Q{question_id}. Evaluation will proceed with empty test cases.")
 
     # Fallback to empty lists if the fetch failed so the worker doesn't crash
     if "test_cases" not in task:

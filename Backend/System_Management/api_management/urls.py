@@ -2,7 +2,7 @@ from django.urls import path
 
 
 from .views import TaskSubmissionView, TaskStatusView
-from .views import LoadView, TaskTokenView, AcceptedTaskView, TaskResultView, NodeInfoView, LocalRunView, StopSystemView, HeartbeatView
+from .views import LoadView, TaskTokenView, AcceptedTaskView, TaskResultView, NodeInfoView, LocalRunView, StopSystemView, HeartbeatView, CacheQuestionsView
 
 urlpatterns = [
 
@@ -18,4 +18,5 @@ urlpatterns = [
     path("local-run/", LocalRunView.as_view(), name="local_run"),
     path("stop_system/", StopSystemView.as_view(), name="stop_system"),
     path("heartbeat/", HeartbeatView.as_view(), name="heartbeat"),
+    path("cache-questions/", CacheQuestionsView.as_view(), name="cache-questions"),
 ]
