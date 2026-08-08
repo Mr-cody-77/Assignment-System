@@ -14,3 +14,10 @@ laucher/
 !.env.example
 
 system_lock_engine/
+
+# Debug and test scripts
+debug_run.txt
+schedule_cache.json
+test_net.py
+test_gemini.py
+
