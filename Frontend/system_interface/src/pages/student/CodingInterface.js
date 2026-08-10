@@ -137,6 +137,16 @@ export default function CodingInterface() {
 
   const currentLangConfig = LANGUAGES.find(l => l.value === lang) || LANGUAGES[0];
 
+  useEffect(() => {
+    const handleForceSubmit = () => {
+      if (code && !submitting) {
+        handleSubmit();
+      }
+    };
+    window.addEventListener('exam-force-submit', handleForceSubmit);
+    return () => window.removeEventListener('exam-force-submit', handleForceSubmit);
+  }, [code, submitting]);
+
   if (!problem) return (
     <div className="app-shell">
       <Sidebar />

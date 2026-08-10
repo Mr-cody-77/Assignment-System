@@ -24,7 +24,39 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const nav = isTeacher ? TEACHER_NAV : STUDENT_NAV;
 
-  const handleLogout = () => { dispatch(logout()); navigate('/login'); };
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    const examActive = localStorage.getItem('exam_active') === 'true';
+    if (examActive) {
+      if (!window.confirm("A test is currently active. Logging out will auto-submit your test and current code. Do you wish to proceed?")) {
+        return;
+      }
+      
+      // Tell CodingInterface to submit the current code
+      window.dispatchEvent(new Event('exam-force-submit'));
+      
+      // Wait a moment for code submission to queue
+      await new Promise(r => setTimeout(r, 1000));
+      
+      try {
+        const testId = localStorage.getItem('exam_test_id');
+        if (testId) {
+          // Dynamic import to avoid circular dependency issues if any
+          const { submitTest } = await import('../../services/testService');
+          await submitTest(testId);
+        }
+      } catch (err) {
+        console.error("Failed to auto-submit test during logout:", err);
+      }
+      
+      localStorage.removeItem('exam_active');
+      localStorage.removeItem('exam_duration');
+      localStorage.removeItem('exam_test_id');
+    }
+    
+    dispatch(logout()); 
+    navigate('/login'); 
+  };
 
   const initials = user
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.username?.[0]?.toUpperCase()

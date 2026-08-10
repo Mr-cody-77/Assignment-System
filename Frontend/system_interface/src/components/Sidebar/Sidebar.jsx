@@ -45,11 +45,33 @@ const Sidebar = ({ role, isOpen, onClose }) => {
   const getInitials = (name = '') =>
     name.slice(0, 2).toUpperCase() || '??';
 
-  const handleLogout = async () => {
+  const handleLogout = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (examActive) {
+      if (!window.confirm("A test is currently active. Logging out will auto-submit your test and current code. Do you wish to proceed?")) {
+        return;
+      }
+      
+      // Tell CodingInterface to submit the current code
+      window.dispatchEvent(new Event('exam-force-submit'));
+      
+      // Wait a moment for code submission to queue
+      await new Promise(r => setTimeout(r, 1000));
+      
+      try {
+        const testId = localStorage.getItem('exam_test_id');
+        if (testId) {
+          const { submitTest } = await import('../../services/testService');
+          await submitTest(testId);
+        }
+      } catch (err) {
+        console.error("Failed to auto-submit test during logout:", err);
+      }
+
       localStorage.removeItem('exam_active');
       localStorage.removeItem('exam_duration');
       localStorage.removeItem('exam_end_time');
+      localStorage.removeItem('exam_test_id');
     }
     logout();
     navigate('/login');
