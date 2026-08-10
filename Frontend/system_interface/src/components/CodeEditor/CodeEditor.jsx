@@ -23,14 +23,21 @@ const TEMPLATES = {
   javascript: '// Write your JavaScript solution here\n\nfunction solution() {\n    \n}\n',
 };
 
-// Fix the Webpack worker loading issue by pointing to the local workers in the public folder
 window.MonacoEnvironment = {
-  getWorkerUrl: function (moduleId, label) {
-    if (label === 'json') return '/monaco/vs/language/json/json.worker.js';
-    if (label === 'css' || label === 'scss' || label === 'less') return '/monaco/vs/language/css/css.worker.js';
-    if (label === 'html' || label === 'handlebars' || label === 'razor') return '/monaco/vs/language/html/html.worker.js';
-    if (label === 'typescript' || label === 'javascript') return '/monaco/vs/language/typescript/ts.worker.js';
-    return '/monaco/vs/editor/editor.worker.js';
+  getWorker: function (_moduleId, label) {
+    if (label === 'json') {
+      return new Worker(new URL('monaco-editor/esm/vs/language/json/json.worker', import.meta.url), { type: 'module' });
+    }
+    if (label === 'css' || label === 'scss' || label === 'less') {
+      return new Worker(new URL('monaco-editor/esm/vs/language/css/css.worker', import.meta.url), { type: 'module' });
+    }
+    if (label === 'html' || label === 'handlebars' || label === 'razor') {
+      return new Worker(new URL('monaco-editor/esm/vs/language/html/html.worker', import.meta.url), { type: 'module' });
+    }
+    if (label === 'typescript' || label === 'javascript') {
+      return new Worker(new URL('monaco-editor/esm/vs/language/typescript/ts.worker', import.meta.url), { type: 'module' });
+    }
+    return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url), { type: 'module' });
   }
 };
 

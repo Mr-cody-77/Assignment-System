@@ -10,15 +10,19 @@ import psutil
 
 def kill_processes_on_ports(ports):
     print(f"Checking for existing processes on ports: {ports}")
-    for conn in psutil.net_connections(kind='inet'):
-        if conn.laddr.port in ports:
-            try:
-                process = psutil.Process(conn.pid)
-                print(f"Killing process {process.pid} ({process.name()}) on port {conn.laddr.port}")
-                process.terminate()
-                process.wait(timeout=3)
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired, AttributeError):
-                pass
+    try:
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.laddr.port in ports:
+                try:
+                    if conn.pid is not None:
+                        process = psutil.Process(conn.pid)
+                        print(f"Killing process {process.pid} ({process.name()}) on port {conn.laddr.port}")
+                        process.terminate()
+                        process.wait(timeout=3)
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired, AttributeError, TypeError):
+                    pass
+    except Exception as e:
+        print(f"Warning: Could not check or kill processes on ports {ports}. {e}")
 
 def wait_for_port(port, timeout=60):
     start_time = time.time()
