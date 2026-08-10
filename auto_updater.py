@@ -39,16 +39,16 @@ def main():
 
     old_hash = get_git_hash()
 
-    # Handle schedule_cache.json conflict by discarding local changes
-    if os.path.exists("schedule_cache.json"):
-        print("[INFO] Restoring local schedule_cache.json to avoid merge conflicts...")
-        run_command("git checkout -- schedule_cache.json")
-    
-    # Pull latest code
-    print("[INFO] Pulling latest code from origin main...")
-    if not run_command("git pull origin main"):
-        print("[ERROR] Failed to pull latest code.")
+    # Handle conflicts dynamically by force-resetting to match origin/main exactly
+    # This guarantees no local file changes or untracked files will ever abort the update
+    print("[INFO] Fetching latest code...")
+    if not run_command("git fetch origin main"):
+        print("[ERROR] Failed to fetch latest code.")
         return
+        
+    print("[INFO] Discarding any local modifications...")
+    run_command("git reset --hard origin/main")
+    run_command("git clean -fd")
         
     new_hash = get_git_hash()
     
