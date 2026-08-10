@@ -6,7 +6,7 @@ const NODE_PORT = process.env.REACT_APP_NODE_PORT || '8000';
 const NODE_URL = `http://${window.location.hostname}:${NODE_PORT}`;
 const NODE_INFO_ENDPOINT = `${NODE_URL}/api/node_info/`;
 
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 10;
 const BASE_DELAY_MS = 1000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

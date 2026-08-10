@@ -1,18 +1,24 @@
 import sys
+import os
 import psutil
 
 def kill_process_tree(pid):
+    current_pid = os.getpid()
     try:
         parent = psutil.Process(pid)
         children = parent.children(recursive=True)
-        # Terminate children first
+        # Terminate children first, but DO NOT terminate ourselves
         for child in children:
+            if child.pid == current_pid:
+                continue
             try:
                 child.terminate()
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
-        # Terminate parent
-        parent.terminate()
+        
+        # Terminate parent (unless it's somehow us)
+        if parent.pid != current_pid:
+            parent.terminate()
     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
         pass
 
