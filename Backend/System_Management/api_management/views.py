@@ -322,7 +322,7 @@ class LocalRunView(APIView):
                 status=status
             )
 
-class StopSystemView(APIView):
+class StopServersView(APIView):
     def post(self, request):
         import threading
         import time
@@ -336,11 +336,14 @@ class StopSystemView(APIView):
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             
             if platform.system() == 'Windows':
-                subprocess.run("taskkill /F /IM node.exe /T", shell=True)
-                subprocess.run("taskkill /F /IM python.exe /T", shell=True)
+                venv_python = os.path.join(base_dir, ".venv", "Scripts", "python.exe")
             else:
-                subprocess.run("pkill -f node", shell=True)
-                subprocess.run("pkill -f python", shell=True)
+                venv_python = os.path.join(base_dir, ".venv", "bin", "python")
+                
+            stop_script = os.path.join(base_dir, "stop_servers.py")
+            
+            if os.path.exists(venv_python) and os.path.exists(stop_script):
+                subprocess.run([venv_python, stop_script])
 
         threading.Thread(target=kill_later, daemon=True).start()
         return Response({"status": "stopping"}, status=status.HTTP_200_OK)

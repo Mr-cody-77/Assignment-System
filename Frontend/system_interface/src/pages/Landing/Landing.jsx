@@ -9,7 +9,7 @@ const Landing = () => {
   const handleExit = async () => {
     if (window.confirm("Are you sure you want to shut down the Assignment System? This will stop all background servers.")) {
       try {
-        await centralRequest.post('/api/stop_system/');
+        await centralRequest.post('/api/stop_servers/');
         alert("System is shutting down. You can now close this window.");
       } catch (err) {
         alert("System is shutting down or has already been stopped.");

@@ -24,16 +24,22 @@ if not exist "%PYTHON_EXE%" (
 )
 
 set DAEMON_SCRIPT=%SCRIPT_DIR%lockdown_daemon.py
+set UPDATER_SCRIPT=%SCRIPT_DIR%auto_updater.py
 
-:: Create scheduled task running as SYSTEM on startup
+:: Create scheduled tasks
+:: Daemon needs SYSTEM privileges on startup
 schtasks /create /tn "ExamLockdownDaemon" /tr "\"%PYTHON_EXE%\" \"%DAEMON_SCRIPT%\"" /sc onstart /ru SYSTEM /rl HIGHEST /f
+:: Updater needs to run as the normal user to avoid git/npm permission issues
+schtasks /create /tn "AssignmentSystemUpdater" /tr "\"%PYTHON_EXE%\" \"%UPDATER_SCRIPT%\"" /sc onlogon /f
 
 if %errorLevel% == 0 (
-    echo Configuring task to run on battery power...
+    echo Configuring tasks to run on battery power...
     powershell -Command "Set-ScheduledTask -TaskName 'ExamLockdownDaemon' -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0)"
-    echo Daemon installed successfully.
-    echo Starting the daemon now...
+    powershell -Command "Set-ScheduledTask -TaskName 'AssignmentSystemUpdater' -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0)"
+    echo Daemon and Updater installed successfully.
+    echo Starting the daemon and updater now...
     schtasks /run /tn "ExamLockdownDaemon"
+    schtasks /run /tn "AssignmentSystemUpdater"
 ) else (
     echo Failed to install the daemon.
 )

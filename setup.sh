@@ -15,6 +15,17 @@ else
 fi
 echo "[OK] Python found: $PYTHON_CMD"
 
+# 1.5 Check for Tkinter (required for GUI)
+if command -v apt-get &> /dev/null; then
+    echo "[INFO] Checking for tkinter (python3-tk) dependency..."
+    if ! dpkg -s python3-tk &> /dev/null; then
+        echo "[INFO] Installing python3-tk (may require sudo password)..."
+        sudo apt-get update && sudo apt-get install -y python3-tk
+    else
+        echo "[OK] tkinter is installed."
+    fi
+fi
+
 # 2. Check for Node.js (npm)
 if ! command -v npm &> /dev/null; then
     echo "[ERROR] Node.js (npm) is not installed. Please install Node.js."

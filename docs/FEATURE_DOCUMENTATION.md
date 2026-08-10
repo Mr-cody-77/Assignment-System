@@ -110,9 +110,9 @@ sequenceDiagram
 ```
 
 ### Key Files & Implementation
-- [Services/load_score.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/load_score.py): Contains `compute_good_score()` and metric ratio logic.
-- [Services/Sender_Server/assigner.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/Sender_Server/assigner.py): Implements P2C selection, 2-phase token handshakes (`send_token_request`, `send_full_task`), and task re-queuing.
-- [Services/Sender_Server/node_manager.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/Sender_Server/node_manager.py): Tracks node lists and load scores.
+- [Services/load_score.py](../Backend/System_Management/Services/load_score.py): Contains `compute_good_score()` and metric ratio logic.
+- [Services/Sender_Server/assigner.py](../Backend/System_Management/Services/Sender_Server/assigner.py): Implements P2C selection, 2-phase token handshakes (`send_token_request`, `send_full_task`), and task re-queuing.
+- [Services/Sender_Server/node_manager.py](../Backend/System_Management/Services/Sender_Server/node_manager.py): Tracks node lists and load scores.
 
 ---
 
@@ -148,9 +148,9 @@ flowchart LR
 ```
 
 ### Key Files & Implementation
-- [Services/Sender_Server/network.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/Sender_Server/network.py): Node registration, Zeroconf listeners, IP auto-detection (`_get_local_ip`), and re-announce loop.
-- [Services/Receiver_Server/network.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/Receiver_Server/network.py): Receiver-side database listener and runtime state update.
-- [Centralized_Database/network.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Centralized_Database/network.py): Central Database Zeroconf broadcaster (`DatabaseBroadcaster`).
+- [Services/Sender_Server/network.py](../Backend/System_Management/Services/Sender_Server/network.py): Node registration, Zeroconf listeners, IP auto-detection (`_get_local_ip`), and re-announce loop.
+- [Services/Receiver_Server/network.py](../Backend/System_Management/Services/Receiver_Server/network.py): Receiver-side database listener and runtime state update.
+- [Centralized_Database/network.py](../Centralized_Database/network.py): Central Database Zeroconf broadcaster (`DatabaseBroadcaster`).
 
 ---
 
@@ -197,8 +197,8 @@ flowchart TD
 ```
 
 ### Key Files & Implementation
-- [api_management/services/handle_local_run.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/api_management/services/handle_local_run.py): Defines language configs, source preparation (`_prepare_source`), execution loop (`run_local_code`), and result aggregation (`execute_code_locally`).
-- [api_management/views.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/api_management/views.py): Handles `LocalRunView`.
+- [api_management/services/handle_local_run.py](../Backend/System_Management/api_management/services/handle_local_run.py): Defines language configs, source preparation (`_prepare_source`), execution loop (`run_local_code`), and result aggregation (`execute_code_locally`).
+- [api_management/views.py](../Backend/System_Management/api_management/views.py): Handles `LocalRunView`.
 
 ---
 
@@ -248,8 +248,8 @@ sequenceDiagram
 ```
 
 ### Key Files & Implementation
-- [Services/Receiver_Server/worker.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/Receiver_Server/worker.py): Contains core execution functions (`run_code`), multi-testcase evaluator (`evaluate_task`), priority status map, and callback dispatcher (`send_result_callback`).
-- [Services/Receiver_Server/main.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/Services/Receiver_Server/main.py): Flask/HTTP endpoints handling `/api/task_token/` and `/api/accepted_task/`.
+- [Services/Receiver_Server/worker.py](../Backend/System_Management/Services/Receiver_Server/worker.py): Contains core execution functions (`run_code`), multi-testcase evaluator (`evaluate_task`), priority status map, and callback dispatcher (`send_result_callback`).
+- [Services/Receiver_Server/main.py](../Backend/System_Management/Services/Receiver_Server/main.py): Flask/HTTP endpoints handling `/api/task_token/` and `/api/accepted_task/`.
 
 ---
 
@@ -321,9 +321,9 @@ flowchart TD
 ```
 
 ### Key Files & Implementation
-- [api_management/services/plagiarism_pipeline.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Backend/System_Management/api_management/services/plagiarism_pipeline.py): Background daemon trigger (`trigger_plagiarism_pipeline`).
-- [Centralized_Database/results/plagiarism_engine.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Centralized_Database/results/plagiarism_engine.py): Implementation of Python AST / regex tokenization, 5-gram hashing, and `jaccard_similarity()`.
-- [Centralized_Database/results/llm_plagiarism.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Centralized_Database/results/llm_plagiarism.py): Background job executing Google Gemini AI semantic checks (`run_llm_plagiarism_check`).
+- [api_management/services/plagiarism_pipeline.py](../Backend/System_Management/api_management/services/plagiarism_pipeline.py): Background daemon trigger (`trigger_plagiarism_pipeline`).
+- [Centralized_Database/results/plagiarism_engine.py](../Centralized_Database/results/plagiarism_engine.py): Implementation of Python AST / regex tokenization, 5-gram hashing, and `jaccard_similarity()`.
+- [Centralized_Database/results/llm_plagiarism.py](../Centralized_Database/results/llm_plagiarism.py): Background job executing Google Gemini AI semantic checks (`run_llm_plagiarism_check`).
 
 ---
 
@@ -363,7 +363,7 @@ sequenceDiagram
 ```
 
 ### Key Files & Implementation
-- [Centralized_Database/results/services.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/Centralized_Database/results/services.py): Contains `trigger_email_daemon()` implementation.
+- [Centralized_Database/results/services.py](../Centralized_Database/results/services.py): Contains `trigger_email_daemon()` implementation.
 
 ---
 
@@ -414,9 +414,9 @@ flowchart TD
 ```
 
 ### Key Files & Implementation
-- [lockdown_daemon.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/lockdown_daemon.py): Core daemon script containing Discovery, IST time parsing (`is_ist_now_in_range`), cache management (`save_cache`, `load_cache`), and PowerShell execution (`lock_internet`, `unlock_internet`).
-- [install_daemon.bat](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/install_daemon.bat): Windows batch script registering scheduled task via `schtasks`.
-- [stop_daemon.bat](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/stop_daemon.bat): Batch script for terminating and deleting lockdown task.
+- [lockdown_daemon.py](../lockdown_daemon.py): Core daemon script containing Discovery, IST time parsing (`is_ist_now_in_range`), cache management (`save_cache`, `load_cache`), and PowerShell execution (`lock_internet`, `unlock_internet`).
+- [install_daemon.bat](../install_daemon.bat): Windows batch script registering scheduled task via `schtasks`.
+- [stop_daemon.bat](../stop_daemon.bat): Batch script for terminating and deleting lockdown task.
 
 ---
 
@@ -474,10 +474,10 @@ flowchart TD
 ```
 
 ### Key Files & Implementation
-- [cli.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/cli.py): Main CLI orchestrator.
-- [launcher.py](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/launcher.py): Silent launcher script.
-- [install_daemon.bat](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/install_daemon.bat) & [stop_daemon.bat](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/stop_daemon.bat): Administrative lockdown management scripts.
-- [setup.bat](file:///c:/Users/HP/OneDrive/Desktop/Assignment_System/Assignment-System/setup.bat): Environment installer.
+- [cli.py](../cli.py): Main CLI orchestrator.
+- [launcher.py](../launcher.py): Silent launcher script.
+- [install_daemon.bat](../install_daemon.bat) & [stop_daemon.bat](../stop_daemon.bat): Administrative lockdown management scripts.
+- [setup.bat](../setup.bat): Environment installer.
 
 ---
 *Documentation compiled automatically for the Assignment System codebase.*

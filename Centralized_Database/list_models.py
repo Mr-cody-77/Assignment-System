@@ -4,7 +4,8 @@ import sys
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(r'c:\Users\HP\OneDrive\Desktop\Assignment_System\Assignment-System\Centralized_Database\.env')
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    load_dotenv(env_path)
 except ImportError:
     pass
 

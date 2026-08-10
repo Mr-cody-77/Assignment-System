@@ -16,14 +16,17 @@ def monitor_heartbeat():
         if time.time() - views.last_heartbeat > 15:
             print("Heartbeat lost! Browser closed. Shutting down system...")
             try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
                 if platform.system() == 'Windows':
-                    subprocess.run("taskkill /F /IM node.exe /T", shell=True, stderr=subprocess.DEVNULL)
-                    subprocess.run("taskkill /F /IM python.exe /T", shell=True, stderr=subprocess.DEVNULL)
+                    venv_python = os.path.join(base_dir, ".venv", "Scripts", "python.exe")
                 else:
-                    subprocess.run("pkill -f node", shell=True, stderr=subprocess.DEVNULL)
-                    subprocess.run("pkill -f python", shell=True, stderr=subprocess.DEVNULL)
-            except Exception:
-                pass
+                    venv_python = os.path.join(base_dir, ".venv", "bin", "python")
+                    
+                stop_script = os.path.join(base_dir, "stop_servers.py")
+                if os.path.exists(venv_python) and os.path.exists(stop_script):
+                    subprocess.run([venv_python, stop_script])
+            except Exception as e:
+                print(f"Error shutting down: {e}")
             break
 
 class ApiManagementConfig(AppConfig):

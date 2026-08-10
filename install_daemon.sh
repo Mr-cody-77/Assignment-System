@@ -25,13 +25,17 @@ fi
 DAEMON_SCRIPT="$SCRIPT_DIR/lockdown_daemon.py"
 SERVICE_FILE="/etc/systemd/system/exam_lockdown.service"
 
+TARGET_USER=$(stat -c '%U' "$SCRIPT_DIR")
+
 echo "Creating systemd service file..."
 cat > "$SERVICE_FILE" << EOF
 [Unit]
 Description=Exam Lockdown Daemon
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
+ExecStartPre=/bin/su $TARGET_USER -c "$PYTHON_EXE $SCRIPT_DIR/auto_updater.py"
 ExecStart=$PYTHON_EXE $DAEMON_SCRIPT
 WorkingDirectory=$SCRIPT_DIR
 Restart=always
