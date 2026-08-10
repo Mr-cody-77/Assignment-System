@@ -53,7 +53,7 @@ const Landing = () => {
           <div className={styles.heroBadge}>✨ Distributed Code Evaluation Platform</div>
           <h1 className={styles.heroTitle}>
             Welcome to<br />
-            <span className={styles.gradientText}>test_autoupdation</span>
+            <span className={styles.gradientText}>CodeMesh</span>
           </h1>
           <p className={styles.heroSubtitle}>
             A distributed, real-time code evaluation platform built for modern
