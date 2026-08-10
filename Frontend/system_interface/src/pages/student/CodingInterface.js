@@ -5,6 +5,17 @@ import * as monaco from 'monaco-editor';
 import { problemApi, submissionApi, draftApi } from '../../api/api';
 import Sidebar from '../../components/Sidebar';
 
+// Fix the Webpack worker loading issue by pointing to the local workers in the public folder
+window.MonacoEnvironment = {
+  getWorkerUrl: function (moduleId, label) {
+    if (label === 'json') return '/monaco/vs/language/json/json.worker.js';
+    if (label === 'css' || label === 'scss' || label === 'less') return '/monaco/vs/language/css/css.worker.js';
+    if (label === 'html' || label === 'handlebars' || label === 'razor') return '/monaco/vs/language/html/html.worker.js';
+    if (label === 'typescript' || label === 'javascript') return '/monaco/vs/language/typescript/ts.worker.js';
+    return '/monaco/vs/editor/editor.worker.js';
+  }
+};
+
 loader.config({ monaco });
 
 const LANGUAGES = [
