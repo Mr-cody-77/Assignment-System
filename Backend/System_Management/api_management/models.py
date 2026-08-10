@@ -2,6 +2,7 @@ from django.db import models
 
 class CachedQuestion(models.Model):
     question_id = models.CharField(max_length=255, unique=True)
+    data = models.JSONField(default=dict)
     test_cases = models.JSONField(default=list)
     hidden_test_cases = models.JSONField(default=list)
     last_updated = models.DateTimeField(auto_now=True)

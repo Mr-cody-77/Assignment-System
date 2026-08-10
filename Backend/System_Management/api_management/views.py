@@ -62,6 +62,7 @@ class CacheQuestionsView(APIView):
                     CachedQuestion.objects.update_or_create(
                         question_id=str(qid),
                         defaults={
+                            "data": q_data,
                             "test_cases": q_data.get("test_cases", []),
                             "hidden_test_cases": q_data.get("hidden_test_cases", [])
                         }
@@ -71,6 +72,46 @@ class CacheQuestionsView(APIView):
                 print(f"Failed to cache question {qid}: {e}")
                 
         return Response({"status": "success", "cached_count": cached_count}, status=status.HTTP_200_OK)
+
+class ProxyQuestionView(APIView):
+    def get(self, request, pk):
+        auth_header = request.headers.get("Authorization")
+        
+        # 1. Try fetching from the Central Database
+        if runtime.database_server:
+            db = runtime.database_server
+            url = f"http://{db['ip']}:{db['port']}/api/questions/{pk}/"
+            try:
+                req = urllib.request.Request(url)
+                if auth_header:
+                    req.add_header("Authorization", auth_header)
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    q_data = json.loads(response.read().decode())
+                    
+                    # Opportunistically cache it
+                    CachedQuestion.objects.update_or_create(
+                        question_id=str(pk),
+                        defaults={
+                            "data": q_data,
+                            "test_cases": q_data.get("test_cases", []),
+                            "hidden_test_cases": q_data.get("hidden_test_cases", [])
+                        }
+                    )
+                    return Response(q_data, status=status.HTTP_200_OK)
+            except Exception as e:
+                print(f"Failed to fetch question from central DB, falling back to local cache: {e}")
+                pass
+                
+        # 2. Fallback to offline SQLite cache
+        try:
+            cached_q = CachedQuestion.objects.get(question_id=str(pk))
+            if cached_q.data:
+                print(f"Serving offline question data for Q{pk}")
+                return Response(cached_q.data, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Offline mode active, but question content not fully cached."}, status=status.HTTP_404_NOT_FOUND)
+        except CachedQuestion.DoesNotExist:
+            return Response({"error": "Offline mode active, but question was not found in cache."}, status=status.HTTP_404_NOT_FOUND)
 
 class TaskSubmissionView(APIView):
     def post(self, request):

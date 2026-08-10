@@ -2,7 +2,7 @@ from django.urls import path
 
 
 from .views import TaskSubmissionView, TaskStatusView
-from .views import LoadView, TaskTokenView, AcceptedTaskView, TaskResultView, NodeInfoView, LocalRunView, StopServersView, HeartbeatView, CacheQuestionsView
+from .views import LoadView, TaskTokenView, AcceptedTaskView, TaskResultView, NodeInfoView, LocalRunView, StopServersView, HeartbeatView, CacheQuestionsView, ProxyQuestionView
 
 urlpatterns = [
 
@@ -19,4 +19,5 @@ urlpatterns = [
     path("stop_servers/", StopServersView.as_view(), name="stop_servers"),
     path("heartbeat/", HeartbeatView.as_view(), name="heartbeat"),
     path("cache-questions/", CacheQuestionsView.as_view(), name="cache-questions"),
+    path("problems/<str:pk>/", ProxyQuestionView.as_view(), name="proxy-question"),
 ]
