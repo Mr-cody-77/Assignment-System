@@ -6,6 +6,19 @@ import threading
 import socket
 import tkinter as tk
 from tkinter import ttk
+import psutil
+
+def kill_processes_on_ports(ports):
+    print(f"Checking for existing processes on ports: {ports}")
+    for conn in psutil.net_connections(kind='inet'):
+        if conn.laddr.port in ports:
+            try:
+                process = psutil.Process(conn.pid)
+                print(f"Killing process {process.pid} ({process.name()}) on port {conn.laddr.port}")
+                process.terminate()
+                process.wait(timeout=3)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired, AttributeError):
+                pass
 
 def wait_for_port(port, timeout=60):
     start_time = time.time()
@@ -24,6 +37,8 @@ def update_status(root, status_label, text):
         root.after(0, lambda: status_label.config(text=text))
 
 def start_servers(root, status_label, base_dir):
+    kill_processes_on_ports([3000, 8000])
+
     # Paths
     if sys.platform == "win32":
         venv_python = os.path.join(base_dir, ".venv", "Scripts", "python.exe")
