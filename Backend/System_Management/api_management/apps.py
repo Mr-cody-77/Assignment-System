@@ -6,8 +6,8 @@ import subprocess
 from django.apps import AppConfig
 
 def monitor_heartbeat():
-    # 60 second grace period on startup
-    time.sleep(60)
+    # 120 second grace period on startup
+    time.sleep(120)
     
     from api_management import views
     while True:

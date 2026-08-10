@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
+import Editor, { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 import { problemApi, submissionApi, draftApi } from '../../api/api';
 import Sidebar from '../../components/Sidebar';
+
+loader.config({ monaco });
 
 const LANGUAGES = [
   { value: 'python',     label: 'Python 3',    monaco: 'python',     starter: '# Write your Python solution here\n\ndef solve():\n    pass\n\nsolve()\n' },

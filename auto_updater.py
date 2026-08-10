@@ -27,14 +27,16 @@ def main():
         return
 
     # Wait for network connection (especially useful if running on boot)
-    print("[INFO] Waiting for network connection...")
-    ping_cmd = "ping -n 1 github.com" if sys.platform == "win32" else "ping -c 1 github.com"
-    for i in range(30):
+    print("[INFO] Checking for network connection...")
+    ping_cmd = "ping -n 1 -w 2000 github.com" if sys.platform == "win32" else "ping -c 1 -W 2 github.com"
+    
+    max_retries = 1 if "--fast" in sys.argv else 30
+    for i in range(max_retries):
         if subprocess.run(ping_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
             break
         time.sleep(2)
     else:
-        print("[ERROR] No network connection detected to github.com. Skipping updates.")
+        print("[WARNING] No network connection detected to github.com. Skipping updates.")
         return
 
     old_hash = get_git_hash()

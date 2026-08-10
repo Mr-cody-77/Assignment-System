@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as monaco from 'monaco-editor';
 import Editor, { loader } from '@monaco-editor/react';
 import styles from './CodeEditor.module.css';
 
@@ -22,9 +23,8 @@ const TEMPLATES = {
   javascript: '// Write your JavaScript solution here\n\nfunction solution() {\n    \n}\n',
 };
 
-// Explicitly tell monaco-editor to load assets from our local folder instead of the internet CDN.
-// This MUST be called at the top level before the component renders.
-loader.config({ paths: { vs: (process.env.PUBLIC_URL || '') + '/monaco/vs' } });
+// Explicitly tell monaco-editor to use the locally bundled version instead of the internet CDN.
+loader.config({ monaco });
 
 const CodeEditor = ({
   value,

@@ -7,13 +7,17 @@ def kill_process_tree(pid):
     try:
         parent = psutil.Process(pid)
         
-        # Climb up one level to catch Django's StatReloader or React's npm wrapper
+        # Climb up to the root-most wrapper (e.g. StatReloader, npm, cli.py)
         try:
-            p_parent = parent.parent()
-            if p_parent:
+            while True:
+                p_parent = parent.parent()
+                if not p_parent:
+                    break
                 name = p_parent.name().lower()
                 if "python" in name or "node" in name or "npm" in name:
                     parent = p_parent
+                else:
+                    break
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
             

@@ -42,9 +42,9 @@ def start_servers(root, status_label, base_dir):
         update_status(root, status_label, "Checking for updates...")
         print("Checking for auto-updates (this may take a moment)...")
         if sys.platform == "win32":
-            subprocess.run([venv_python, updater_path], creationflags=subprocess.CREATE_NO_WINDOW)
+            subprocess.run([venv_python, updater_path, "--fast"], creationflags=subprocess.CREATE_NO_WINDOW)
         else:
-            subprocess.run([venv_python, updater_path])
+            subprocess.run([venv_python, updater_path, "--fast"])
     
     # 1. Start Node Backend (System_Management) on Port 8000
     update_status(root, status_label, "Starting backend server...")
