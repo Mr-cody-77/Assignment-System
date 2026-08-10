@@ -7,6 +7,7 @@ import sys
 import json
 from datetime import datetime, timezone, timedelta
 import platform
+import configparser
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,6 +30,36 @@ if os.path.exists(env_path):
                 db_server_ip = line.split('=', 1)[1].strip()
             elif line.startswith('DATABASE_SERVER_PORT='):
                 db_server_port = line.split('=', 1)[1].strip()
+
+def enforce_networkmanager_connectivity():
+    if platform.system() == 'Windows':
+        return
+        
+    nm_conf = '/etc/NetworkManager/NetworkManager.conf'
+    if not os.path.exists(nm_conf):
+        return
+        
+    try:
+        config = configparser.ConfigParser()
+        config.optionxform = str
+        config.read(nm_conf)
+        
+        needs_update = False
+        if not config.has_section('connectivity'):
+            config.add_section('connectivity')
+            needs_update = True
+            
+        if not config.has_option('connectivity', 'enabled') or config.get('connectivity', 'enabled') != 'false':
+            config.set('connectivity', 'enabled', 'false')
+            needs_update = True
+            
+        if needs_update:
+            with open(nm_conf, 'w') as f:
+                config.write(f)
+            logging.info("Enforced NetworkManager connectivity=false. Restarting NetworkManager...")
+            subprocess.run("systemctl restart NetworkManager", shell=True)
+    except Exception as e:
+        logging.error(f"Failed to enforce NetworkManager config: {e}")
 
 def get_db_url_from_local_node():
     # First check .env for REACT_APP_NODE_PORT
@@ -318,6 +349,7 @@ def main():
         sys.exit(1)
         
     logging.info("Lockdown daemon started.")
+    enforce_networkmanager_connectivity()
     is_currently_locked = False
     
     # Ensure initially unlocked on startup just in case
