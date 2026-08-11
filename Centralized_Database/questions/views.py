@@ -9,12 +9,24 @@ from rest_framework import status
 
 from .models import Test, Question, TestCase, HiddenTestCase, TestAttempt, TestSubmission, LockdownSchedule
 from .serializers import TestSerializer, QuestionSerializer
+from results.models import Result, SubmittedSolution, SolutionFingerprint, PlagiarismDetected, CodeSubmissionHistory
 
 EXAM_CIPHER_KEY = "SystemSecureExamKey77!"
 
 def xor_encrypt(plain_text, key=EXAM_CIPHER_KEY):
     encrypted = bytes(ord(c) ^ ord(key[i % len(key)]) for i, c in enumerate(plain_text))
     return base64.b64encode(encrypted).decode()
+
+def clear_test_results(test):
+    question_ids = [str(q.id) for q in test.questions.all()]
+    if question_ids:
+        Result.objects.filter(question_id__in=question_ids).delete()
+        SubmittedSolution.objects.filter(question_id__in=question_ids).delete()
+        SolutionFingerprint.objects.filter(question_id__in=question_ids).delete()
+        PlagiarismDetected.objects.filter(question_id__in=question_ids).delete()
+        CodeSubmissionHistory.objects.filter(question_id__in=question_ids).delete()
+    TestAttempt.objects.filter(test=test).delete()
+    TestSubmission.objects.filter(test=test).delete()
 
 class CreateTestView(APIView):
     permission_classes = [IsAuthenticated]
@@ -102,8 +114,7 @@ class TestDetailView(APIView):
             
         test.save()
         # Reset test attempts and submissions if the test is modified
-        TestAttempt.objects.filter(test=test).delete()
-        TestSubmission.objects.filter(test=test).delete()
+        clear_test_results(test)
         return Response(TestSerializer(test, context={'request': request}).data)
 
 class TestToggleLiveView(APIView):
@@ -212,8 +223,7 @@ class QuestionListView(APIView):
             return Response({"error": "Test not found"}, status=status.HTTP_404_NOT_FOUND)
             
         # Reset test attempts and submissions if a new question is added
-        TestAttempt.objects.filter(test=test).delete()
-        TestSubmission.objects.filter(test=test).delete()
+        clear_test_results(test)
             
         q = Question.objects.create(
             test=test,
@@ -249,8 +259,7 @@ class QuestionDetailView(APIView):
         try:
             q = Question.objects.get(id=question_id)
             # Reset test attempts and submissions because the test changed
-            TestAttempt.objects.filter(test=q.test).delete()
-            TestSubmission.objects.filter(test=q.test).delete()
+            clear_test_results(q.test)
             q.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Question.DoesNotExist:
@@ -266,8 +275,7 @@ class QuestionDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
             
         # Reset test attempts and submissions if a question is modified
-        TestAttempt.objects.filter(test=q.test).delete()
-        TestSubmission.objects.filter(test=q.test).delete()
+        clear_test_results(q.test)
             
         data = request.data
         if "title" in data:
