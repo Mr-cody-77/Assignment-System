@@ -32,6 +32,11 @@ export default function Sidebar() {
         return;
       }
       
+      const email = window.prompt("Please enter your preferred email to receive your final score and plagiarism check results:");
+      if (email) {
+        localStorage.setItem('preferred_email', email);
+      }
+      
       // Tell CodingInterface to submit the current code
       window.dispatchEvent(new Event('exam-force-submit'));
       

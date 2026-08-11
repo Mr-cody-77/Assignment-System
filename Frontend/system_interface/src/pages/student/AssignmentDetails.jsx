@@ -114,6 +114,7 @@ const AssignmentDetails = () => {
                   question: buildSubmitQuestion(q),
                   language: cachedLang,
                   solution: cachedCode,
+                  email: localStorage.getItem('preferred_email') || user.email || '',
                 });
               } catch (err) {
                 console.error(`Failed to auto-submit Q${q.id}:`, err);
@@ -236,6 +237,7 @@ const AssignmentDetails = () => {
         question: buildSubmitQuestion(question),
         language,
         solution: code,
+        email: localStorage.getItem('preferred_email') || user.email || '',
       });
       setSubmittedTaskId(res.task_id);
       addToast(`Task submitted! ID: ${res.task_id}`, 'success', 6000);

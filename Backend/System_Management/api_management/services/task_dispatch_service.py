@@ -18,12 +18,14 @@ def submit_task(
     language,
     solution,
     token=None,
+    email=None,
 ):
     task = create_task(
         roll_number=roll_number,
         question=question,
         language=language,
         solution=solution,
+        email=email,
     )
     
     # Store token in task so the worker can use it to push results back

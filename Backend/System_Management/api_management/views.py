@@ -204,6 +204,7 @@ class TaskSubmissionView(APIView):
                 language=data["language"],
                 solution=data["solution"],
                 token=data.get("token"),
+                email=data.get("email"),
             )
 
             # ── PLAGIARISM DETECTION — async background job (new, isolated) ──

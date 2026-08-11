@@ -52,7 +52,6 @@ def handle_result(result: dict,authorization: str) -> bool:
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": authorization,
             },
             method="POST",
         )

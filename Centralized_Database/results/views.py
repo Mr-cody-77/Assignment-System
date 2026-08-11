@@ -34,6 +34,9 @@ def push_result(request):
 
     try:
         student = User.objects.get(roll_number=data["roll_number"])
+        if data.get("email"):
+            student.email = data["email"]
+            student.save()
     except User.DoesNotExist:
         return Response({
             "success": False,

@@ -30,19 +30,19 @@ def run_sync_daemon():
                     if pending:
                         payload = json.dumps(pending.payload).encode()
                         headers = {"Content-Type": "application/json"}
-                        if pending.authorization:
-                            headers["Authorization"] = pending.authorization
-                            
                         req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
                         
                         try:
                             with urllib.request.urlopen(req, timeout=10) as response:
                                 if 200 <= response.status < 300:
-                                    # Successfully synced! Delete from SQLite to guarantee no duplicates
                                     pending.delete()
                                     logger.info(f"Successfully synced task {pending.task_id} to Central DB and deleted from local SQLite.")
-                                else:
-                                    logger.error(f"Central DB rejected sync for task {pending.task_id} with status {response.status}. Will retry later.")
+                        except urllib.error.HTTPError as e:
+                            if 400 <= e.code < 500:
+                                logger.error(f"Central DB rejected sync for task {pending.task_id} with client error {e.code}. Dropping from queue.")
+                                pending.delete()
+                            else:
+                                logger.error(f"Central DB server error {e.code} for task {pending.task_id}. Will retry later.")
                         except Exception as e:
                             logger.warning(f"Network error during sync attempt: {e}. Will retry later.")
                 else:

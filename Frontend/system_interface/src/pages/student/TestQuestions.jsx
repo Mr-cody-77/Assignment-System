@@ -454,6 +454,7 @@ const TestQuestions = () => {
               question: buildSubmitQuestion(q),
               language: cachedLang,
               solution: cachedCode,
+              email: emailInput || localStorage.getItem('preferred_email') || user.email || '',
             });
           } catch (err) {
             console.error(`Failed to auto-submit code for Q${q.id}:`, err);

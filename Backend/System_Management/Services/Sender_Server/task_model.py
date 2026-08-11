@@ -7,11 +7,13 @@ def create_task(
     language: str,
     solution: str,
     submission_id: str = "",
+    email: str = None,
 ) -> dict:
     return {
         "task_id": str(uuid.uuid4()),
         "submission_id": submission_id,
         "roll_number": roll_number,
+        "email": email,
         "question_id": question.get("id"),
         "retries": 0,
         "data": {
