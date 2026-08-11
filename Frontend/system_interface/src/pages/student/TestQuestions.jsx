@@ -494,7 +494,25 @@ const TestQuestions = () => {
         if (!Array.isArray(results)) results = [];
       }
     } catch (err) {
-      console.error('Failed to fetch results:', err);
+      console.error('Failed to fetch results from Central DB, falling back to local task status', err);
+      try {
+        if (user?.username) {
+          const statuses = await getTaskStatus();
+          results = statuses
+            .filter(t => t.roll_number === user.username && t.result)
+            .map(t => ({
+              question_id: String(t.question_id),
+              score: Number(t.result.score) || 0,
+              passed_testcases: Number(t.result.passed_testcases) || 0,
+              total_testcases: Number(t.result.total_testcases) || 0,
+              execution_time: Number(t.result.execution_time) || 0,
+              status: t.result.status,
+              submitted_at: t.result.submitted_at || new Date(t.updated_at ? t.updated_at * 1000 : Date.now()).toISOString()
+            }));
+        }
+      } catch (fallbackErr) {
+        console.error('Failed to fetch local task status fallback:', fallbackErr);
+      }
     }
 
     /* 4. Clear exam state */
