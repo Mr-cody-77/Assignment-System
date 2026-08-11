@@ -52,6 +52,11 @@ def send_token_request(node: dict, task: dict) -> tuple[bool, str | None]:
             return True, data.get('token')
     except Exception as e:
         logger.debug(f"Token request failed for {ip}:{port} — {e}")
+        # Immediately evict stale nodes to avoid holding tasks in 'unassigned'
+        with runtime.lock:
+            if node.get("node_id") in runtime.nodes:
+                runtime.nodes.pop(node["node_id"], None)
+                
     return False, None
 
 
@@ -88,7 +93,9 @@ def send_full_task(node: dict, task: dict, token: str) -> bool:
         "memory_limit_mb": data.get("memory_limit_mb", 256),
         "max_score": data.get("max_score", 100),
 
-        "callback_ip": _sender_ip(),
+        # If sending to local machine in offline mode, use 127.0.0.1 as callback
+        # to avoid using a dead LAN IP which would cause a timeout
+        "callback_ip": "127.0.0.1" if ip == "127.0.0.1" else _sender_ip(),
         "callback_port": _sender_port(),
         "sender_id": runtime.node_id,
     }
@@ -106,6 +113,10 @@ def send_full_task(node: dict, task: dict, token: str) -> bool:
         logger.debug(
             f"Full task send failed for {ip}:{port} — {e}"
         )
+        # Immediately evict stale nodes to avoid holding tasks in 'unassigned'
+        with runtime.lock:
+            if node.get("node_id") in runtime.nodes:
+                runtime.nodes.pop(node["node_id"], None)
 
         return False
 

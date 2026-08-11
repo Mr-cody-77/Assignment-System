@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getAllTests } from '../../services/testService';
+import { getTestById, getAllTests } from '../../services/testService';
 import styles from './Sidebar.module.css';
 
 const TEACHER_NAV = [
@@ -34,11 +34,20 @@ const Sidebar = ({ role, isOpen, onClose }) => {
 
   useEffect(() => {
     if (role === 'student' && examActive) {
-      getAllTests()
-        .then((tests) => {
-          if (tests && tests.length > 0) setActiveTest(tests[0]);
-        })
-        .catch((err) => console.error("Failed to fetch test for sidebar", err));
+      const testId = localStorage.getItem('exam_test_id');
+      if (testId) {
+        getTestById(testId)
+          .then((test) => {
+            if (test) setActiveTest(test);
+          })
+          .catch((err) => console.error("Failed to fetch test for sidebar", err));
+      } else {
+        getAllTests()
+          .then((tests) => {
+            if (tests && tests.length > 0) setActiveTest(tests[0]);
+          })
+          .catch((err) => console.error("Failed to fetch test for sidebar", err));
+      }
     }
   }, [role, examActive]);
 
