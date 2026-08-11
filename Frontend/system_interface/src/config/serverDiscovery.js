@@ -32,9 +32,12 @@ export async function discoverServers(retries = MAX_RETRIES) {
       const { ip, port } = data.database_server;
 
       if (!ip || !port || ip === 'Pending...') {
-        throw new Error(
-          'Database server is pending discovery via Zeroconf. Retrying...'
-        );
+        console.warn('Database server is pending discovery. Proceeding in offline mode.');
+        return {
+          centralURL: `http://localhost:${NODE_PORT}`, // Fallback for offline mode
+          backendURL: NODE_URL,
+          nodeInfo: data,
+        };
       }
 
       // The Node found the Database via Zeroconf and tells React where it is!

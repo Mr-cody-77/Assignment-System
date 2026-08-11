@@ -308,11 +308,11 @@ const createClient = () =>
   );
 
 const centralClient = createClient();
-const backendClient = axios.create({
+const backendClient = installAuthInterceptors(axios.create({
   baseURL: NODE_URL,
   timeout: TIMEOUT,
   headers: JSON_HEADERS,
-});
+}));
 
 // Dynamically route backendRequest to the dynamically discovered local node port
 backendClient.interceptors.request.use((config) => {
