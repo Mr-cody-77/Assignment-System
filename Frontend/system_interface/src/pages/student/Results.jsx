@@ -28,7 +28,7 @@ const Results = () => {
     if (!user?.username) return;
     try {
       const [data, testsData, submittedData] = await Promise.all([
-        getMyResults(user.username),
+        getMyResults(user.roll_number || user.username),
         getAllTests(),
         getSubmittedTests()
       ]);

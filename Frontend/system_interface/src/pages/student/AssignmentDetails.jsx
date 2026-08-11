@@ -110,7 +110,7 @@ const AssignmentDetails = () => {
             if (cachedCode) {
               try {
                 await submitTask({
-                  roll_number: user.username,
+                  roll_number: user.roll_number || user.username,
                   question: buildSubmitQuestion(q),
                   language: cachedLang,
                   solution: cachedCode,
@@ -232,7 +232,7 @@ const AssignmentDetails = () => {
     setSubmitting(true);
     try {
       const res = await submitTask({
-        roll_number: user.username,
+        roll_number: user.roll_number || user.username,
         question: buildSubmitQuestion(question),
         language,
         solution: code,

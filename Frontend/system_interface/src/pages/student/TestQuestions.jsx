@@ -450,7 +450,7 @@ const TestQuestions = () => {
         if (cachedCode) {
           try {
             await submitTask({
-              roll_number: user.username,
+              roll_number: user.roll_number || user.username,
               question: buildSubmitQuestion(q),
               language: cachedLang,
               solution: cachedCode,
@@ -466,7 +466,7 @@ const TestQuestions = () => {
         for (let i = 0; i < 10; i++) {
           const statuses = await getTaskStatus();
           const pending = statuses.filter(t => 
-            t.roll_number === user?.username && 
+            (t.roll_number === user?.roll_number || t.roll_number === user?.username) && 
             ['pending', 'queued', 'running'].includes(t.status?.toLowerCase())
           );
           if (pending.length === 0) break;
@@ -489,8 +489,8 @@ const TestQuestions = () => {
     /* 3. Fetch per-question results from Centralized DB */
     let results = [];
     try {
-      if (user?.username) {
-        results = await getMyResults(user.username);
+      if (user) {
+        results = await getMyResults(user.roll_number || user.username);
         if (!Array.isArray(results)) results = [];
       }
     } catch (err) {
@@ -499,7 +499,7 @@ const TestQuestions = () => {
         if (user?.username) {
           const statuses = await getTaskStatus();
           results = statuses
-            .filter(t => t.roll_number === user.username && t.result)
+            .filter(t => (t.roll_number === user.roll_number || t.roll_number === user.username) && t.result)
             .map(t => ({
               question_id: String(t.question_id),
               score: Number(t.result.score) || 0,
