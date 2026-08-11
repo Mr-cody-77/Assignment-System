@@ -73,6 +73,50 @@ class CacheQuestionsView(APIView):
                 
         return Response({"status": "success", "cached_count": cached_count}, status=status.HTTP_200_OK)
 
+class ProxyQuestionsListView(APIView):
+    def get(self, request):
+        auth_header = request.headers.get("Authorization")
+        
+        # 1. Try fetching from the Central Database
+        if runtime.database_server:
+            db = runtime.database_server
+            url = f"http://{db['ip']}:{db['port']}/api/questions/"
+            try:
+                req = urllib.request.Request(url)
+                if auth_header:
+                    req.add_header("Authorization", auth_header)
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    questions_data = json.loads(response.read().decode())
+                    
+                    # Opportunistically cache all returned questions
+                    for q_data in questions_data:
+                        q_id = str(q_data.get("id"))
+                        CachedQuestion.objects.update_or_create(
+                            question_id=q_id,
+                            defaults={
+                                "data": q_data,
+                                "test_cases": q_data.get("test_cases", []),
+                                "hidden_test_cases": q_data.get("hidden_test_cases", [])
+                            }
+                        )
+                    return Response(questions_data, status=status.HTTP_200_OK)
+            except Exception as e:
+                print(f"Failed to fetch questions list from central DB, falling back to local cache: {e}")
+                pass
+                
+        # 2. Fallback to offline SQLite cache
+        try:
+            cached_qs = CachedQuestion.objects.all()
+            results = []
+            for cached_q in cached_qs:
+                if cached_q.data:
+                    results.append(cached_q.data)
+            
+            print(f"Serving {len(results)} offline questions")
+            return Response(results, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": f"Offline mode active, but error fetching from cache: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class ProxyQuestionView(APIView):
     def get(self, request, pk):
         auth_header = request.headers.get("Authorization")

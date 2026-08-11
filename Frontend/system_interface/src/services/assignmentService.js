@@ -1,4 +1,4 @@
-import { centralRequest } from './api';
+import { centralRequest, backendRequest } from './api';
 import { endpoints } from '../config/endpointResolver';
 
 /**
@@ -10,7 +10,7 @@ import { endpoints } from '../config/endpointResolver';
  *   created_at }
  */
 export const getAllAssignments = async () => {
-  const res = await centralRequest.get(endpoints.questions());
+  const res = await backendRequest.get(endpoints.proxiedQuestions());
   return res.data;
 };
 
@@ -19,7 +19,7 @@ export const getAllAssignments = async () => {
  * GET /api/questions/<id>/
  */
 export const getAssignmentById = async (id) => {
-  const res = await centralRequest.get(endpoints.questionById(id));
+  const res = await backendRequest.get(endpoints.proxiedQuestionById(id));
   return res.data;
 };
 

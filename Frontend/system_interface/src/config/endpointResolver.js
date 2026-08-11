@@ -52,6 +52,14 @@ export const endpoints = {
   nodeInfo: () =>
     `${runtimeConfig.getBackendURL()}/api/node_info/`,
 
+  // ── Proxied Questions (Backend Node Server — relative URLs) ──
+  proxiedQuestions: () =>
+    `${runtimeConfig.getBackendURL()}/api/problems/`,
+
+  proxiedQuestionById: (id) =>
+    `${runtimeConfig.getBackendURL()}/api/problems/${id}/`,
+
+
   // ── Plagiarism Detection (Central Server) — new, isolated ─
   plagiarismTeacher: () => `${central()}/api/results/plagiarism/teacher/`,
   plagiarismStudent: () => `${central()}/api/results/plagiarism/student/`,
