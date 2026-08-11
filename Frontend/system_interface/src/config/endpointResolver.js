@@ -55,13 +55,12 @@ export const endpoints = {
   // ── Proxied Questions (Backend Node Server — relative URLs) ──
   proxiedQuestions: () =>
     `${runtimeConfig.getBackendURL()}/api/problems/`,
-
   proxiedQuestionById: (id) =>
     `${runtimeConfig.getBackendURL()}/api/problems/${id}/`,
-
+  proxiedTestById: (id) =>
+    `${runtimeConfig.getBackendURL()}/api/tests/${id}/`,
 
   // ── Plagiarism Detection (Central Server) — new, isolated ─
   plagiarismTeacher: () => `${central()}/api/results/plagiarism/teacher/`,
   plagiarismStudent: () => `${central()}/api/results/plagiarism/student/`,
 };
-

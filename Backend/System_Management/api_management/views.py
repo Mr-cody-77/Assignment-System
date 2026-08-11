@@ -26,7 +26,7 @@ import time
 
 import urllib.request
 import json
-from api_management.models import CachedQuestion
+from api_management.models import CachedQuestion, CachedTest
 from Services.Sender_Server.runtime import runtime
 
 # Global variable to track the last heartbeat
@@ -156,6 +156,42 @@ class ProxyQuestionView(APIView):
                 return Response({"error": "Offline mode active, but question content not fully cached."}, status=status.HTTP_404_NOT_FOUND)
         except CachedQuestion.DoesNotExist:
             return Response({"error": "Offline mode active, but question was not found in cache."}, status=status.HTTP_404_NOT_FOUND)
+
+class ProxyTestView(APIView):
+    def get(self, request, pk):
+        auth_header = request.headers.get("Authorization")
+        
+        # 1. Try fetching from the Central Database
+        if runtime.database_server:
+            db = runtime.database_server
+            url = f"http://{db['ip']}:{db['port']}/api/tests/{pk}/"
+            try:
+                req = urllib.request.Request(url)
+                if auth_header:
+                    req.add_header("Authorization", auth_header)
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    test_data = json.loads(response.read().decode())
+                    
+                    # Opportunistically cache it
+                    CachedTest.objects.update_or_create(
+                        test_id=str(pk),
+                        defaults={
+                            "data": test_data,
+                        }
+                    )
+                    return Response(test_data, status=status.HTTP_200_OK)
+            except Exception as e:
+                print(f"Failed to fetch test from central DB, falling back to local cache: {e}")
+                pass
+                
+        # 2. Fallback to offline SQLite cache
+        try:
+            cached_test = CachedTest.objects.get(test_id=str(pk))
+            return Response(cached_test.data, status=status.HTTP_200_OK)
+        except CachedTest.DoesNotExist:
+            return Response({"error": "Offline mode active, but test was not found in cache."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"Offline mode active, but error fetching from cache: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class TaskSubmissionView(APIView):
     def post(self, request):

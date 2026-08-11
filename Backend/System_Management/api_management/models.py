@@ -7,6 +7,11 @@ class CachedQuestion(models.Model):
     hidden_test_cases = models.JSONField(default=list)
     last_updated = models.DateTimeField(auto_now=True)
 
+class CachedTest(models.Model):
+    test_id = models.CharField(max_length=255, unique=True)
+    data = models.JSONField(default=dict)
+    last_updated = models.DateTimeField(auto_now=True)
+
 class PendingResult(models.Model):
     task_id = models.CharField(max_length=255, unique=True)
     payload = models.JSONField(default=dict)

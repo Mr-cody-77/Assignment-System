@@ -120,26 +120,43 @@ def assign_task(task: dict) -> bool:
 
     for attempt in range(MAX_RETRIES):
         candidates = get_two_nodes(exclude=tried)
+        
         if not candidates:
-            logger.debug(f"No candidates available (attempt {attempt + 1})")
+            logger.info("No network nodes available, falling back to local self-evaluation mode")
+            best = {
+                "node_id": runtime.node_id,
+                "ip": "127.0.0.1",
+                "port": runtime.port or 8000,
+            }
+            # Skip Phase 1 admission token request when doing local self-evaluation
+            # because we don't want to reject our own tasks in offline mode
+            accepted, token = send_token_request(best, task)
+            if not accepted or not token:
+                logger.warning("Local self-evaluation token request rejected, retrying...")
+                time.sleep(random.uniform(RETRY_DELAY_MIN, RETRY_DELAY_MAX))
+                continue
+            
+            # Phase 2 — full task
+            if send_full_task(best, task, token):
+                with lock:
+                    assigned_tasks[task["task_id"]] = best
+                    task_store[task["task_id"]] = task
+                    tasks[task["task_id"]]["status"] = "executing"
+                    tasks[task["task_id"]]["assigned_node"] = best
+                    tasks[task["task_id"]]["updated_at"] = time.time()
+                logger.info(f"Task {task['task_id']} assigned locally (self-evaluation)")
+                return True
+                
             time.sleep(random.uniform(RETRY_DELAY_MIN, RETRY_DELAY_MAX))
             continue
 
         # Power of Two Choices: pick less-loaded node
-       # Best remote node
         if len(candidates) == 1:
-
             remote_best = candidates[0]
             remote_score = get_load(remote_best)
-
         else:
-
             scores = [(c, get_load(c)) for c in candidates]
-
-            remote_best, remote_score = max(
-                scores,
-                key=lambda x: x[1]
-            )
+            remote_best, remote_score = max(scores, key=lambda x: x[1])
 
         local_score = get_runtime_score(receiver_runtime)
 

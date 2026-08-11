@@ -1,4 +1,4 @@
-import { centralRequest } from './api';
+import { centralRequest, backendRequest } from './api';
 import { endpoints } from '../config/endpointResolver';
 
 export const getAllTests = async () => {
@@ -7,7 +7,7 @@ export const getAllTests = async () => {
 };
 
 export const getTestById = async (id) => {
-  const res = await centralRequest.get(endpoints.testById(id));
+  const res = await backendRequest.get(endpoints.proxiedTestById(id));
   return res.data;
 };
 
