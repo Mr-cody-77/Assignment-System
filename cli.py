@@ -81,7 +81,11 @@ def main():
                 [python_exe, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
                 cwd=ASSIGNMENT_NODE_DIR,
                 name="Headless Node",
-                env_vars={"NODE_PORT": str(args.port)} 
+                env_vars={
+                    "NODE_PORT": str(args.port),
+                    "DATABASE_SERVER_IP": "127.0.0.1",
+                    "DATABASE_SERVER_PORT": "8001"
+                } 
             )
 
         if args.db_server:
@@ -111,7 +115,11 @@ def main():
                             [python_exe, "manage.py", "runserver", f"0.0.0.0:{args.port}"],
                             cwd=ASSIGNMENT_NODE_DIR,
                             name="Node Backend",
-                            env_vars={"NODE_PORT": str(args.port)}  # <--- Inject the Node port
+                            env_vars={
+                                "NODE_PORT": str(args.port),
+                                "DATABASE_SERVER_IP": "127.0.0.1",
+                                "DATABASE_SERVER_PORT": "8001"
+                            }
                         )
             
             # 3. Start React Frontend
