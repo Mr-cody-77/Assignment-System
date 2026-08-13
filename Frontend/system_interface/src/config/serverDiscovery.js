@@ -32,6 +32,10 @@ export async function discoverServers(retries = MAX_RETRIES) {
       const { ip, port } = data.database_server;
 
       if (!ip || !port || ip === 'Pending...') {
+        if (attempt < retries) {
+          throw new Error('Database server is still Pending discovery via Zeroconf. Retrying...');
+        }
+        
         console.warn('Database server is pending discovery. Proceeding in offline mode.');
         return {
           centralURL: `http://localhost:${NODE_PORT}`, // Fallback for offline mode
