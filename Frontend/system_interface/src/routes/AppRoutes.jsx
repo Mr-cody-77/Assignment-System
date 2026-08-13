@@ -11,6 +11,7 @@ import NodeConnections from '../pages/NodeConnections/NodeConnections';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard.jsx';
 import TeacherTests from '../pages/teacher/TeacherTests';
 import TeacherTestDetails from '../pages/teacher/TeacherTestDetails';
+import TeacherTestPermissions from '../pages/teacher/TeacherTestPermissions';
 import CreateTest from '../pages/teacher/CreateTest';
 import StudentResults from '../pages/teacher/StudentResults';
 import TeacherNodeConnections from '../pages/teacher/TeacherNodeConnections';
@@ -58,6 +59,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requiredRole="teacher">
             <TeacherTestDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/tests/:id/permissions"
+        element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherTestPermissions />
           </ProtectedRoute>
         }
       />

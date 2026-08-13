@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     CreateTestView, TestListView, TestDetailView, TestToggleLiveView, ActiveTestConfigView,
     StartTestView, SubmitTestView, SyncSubmitTestView, QuestionListView, QuestionDetailView, AITestCaseGeneratorView,
-    LockdownScheduleView
+    LockdownScheduleView, TestReattemptView
 )
 
 urlpatterns = [
@@ -15,6 +15,7 @@ urlpatterns = [
     path('tests/sync_submit/', SyncSubmitTestView.as_view(), name='test-sync-submit'),
     path('tests/<int:test_id>/', TestDetailView.as_view(), name='test-detail'),
     path('tests/<int:test_id>/toggle-live/', TestToggleLiveView.as_view(), name='test-toggle'),
+    path('tests/<int:pk>/grant_reattempt/', TestReattemptView.as_view(), name='test-grant-reattempt'),
     
     # Question endpoints
     path('questions/', QuestionListView.as_view(), name='question-list'),

@@ -40,6 +40,7 @@ class ResultSerializer(serializers.ModelSerializer):
             'execution_time',
             'status',
             'submitted_at',
+            'is_latest',
         ]
 
 

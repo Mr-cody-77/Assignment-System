@@ -2,18 +2,24 @@ from .models import Result
 
 
 def store_result(student, data):
-    result, created = Result.objects.update_or_create(
+    # Mark old results for this student and question as not latest
+    Result.objects.filter(
+        student=student, 
+        question_id=data['question_id']
+    ).update(is_latest=False)
+    
+    # Create the new result
+    result = Result.objects.create(
         student=student,
         question_id=data['question_id'],
-        defaults={
-            'roll_number': data['roll_number'],
-            'status': data['status'],
-            'score': data['score'],
-            'passed_testcases': data.get('passed_testcases', 0),
-            'total_testcases': data.get('total_testcases', 0),
-            'execution_time': data.get('execution_time', 0),
-            'emailed': False,
-        }
+        roll_number=data['roll_number'],
+        status=data['status'],
+        score=data['score'],
+        passed_testcases=data.get('passed_testcases', 0),
+        total_testcases=data.get('total_testcases', 0),
+        execution_time=data.get('execution_time', 0),
+        emailed=False,
+        is_latest=True,
     )
     return result
 

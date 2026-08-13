@@ -554,3 +554,50 @@ class LockdownScheduleView(APIView):
                 "is_active": schedule.is_active
             }
         }, status=status.HTTP_201_CREATED)
+
+from users.permissions import IsTeacher
+from users.models import User
+from .models import TestAttempt
+
+class TestReattemptView(APIView):
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    def post(self, request, pk):
+        try:
+            test = Test.objects.get(id=pk)
+        except Test.DoesNotExist:
+            return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        roll_numbers = []
+
+        # Handle manual text input
+        manual_rolls = request.data.get('roll_numbers', '')
+        if manual_rolls:
+            roll_numbers.extend([r.strip() for r in manual_rolls.split(',') if r.strip()])
+
+        # Handle Excel file upload
+        if 'file' in request.FILES:
+            try:
+                import openpyxl
+                excel_file = request.FILES['file']
+                wb = openpyxl.load_workbook(excel_file)
+                ws = wb.active
+                # Assuming roll numbers are in the first column
+                for row in ws.iter_rows(min_row=1, max_col=1, values_only=True):
+                    if row[0]:
+                        roll_numbers.append(str(row[0]).strip())
+            except Exception as e:
+                return Response({'error': f'Failed to parse Excel file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not roll_numbers:
+            return Response({'error': 'No roll numbers provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        students = User.objects.filter(roll_number__in=roll_numbers)
+        
+        # Delete their TestSubmission
+        TestSubmission.objects.filter(test=test, student__in=students).delete()
+        
+        # Delete their TestAttempt
+        TestAttempt.objects.filter(test=test, student__in=students).delete()
+        
+        return Response({'success': True, 'message': f'Re-attempt granted for {students.count()} students.'})

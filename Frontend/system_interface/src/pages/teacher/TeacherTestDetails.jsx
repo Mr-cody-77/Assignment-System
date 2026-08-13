@@ -84,6 +84,9 @@ const TeacherTestDetails = () => {
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate(`/teacher/tests/${id}/permissions`)}>
+                Change Test permission
+                </button>
                 <button className="btn btn-primary btn-sm" onClick={() => setEditingTest(true)}>
                 Edit Test
                 </button>

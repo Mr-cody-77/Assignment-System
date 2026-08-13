@@ -148,7 +148,9 @@ const StudentResults = () => {
           results: []
         };
       }
-      groupsMap[key].marks += r.score || 0;
+      if (r.is_latest === undefined || r.is_latest) {
+        groupsMap[key].marks += r.score || 0;
+      }
       groupsMap[key].questionsDone.add(r.question_id);
       
       const qMax = questionMaxMarks[r.question_id];

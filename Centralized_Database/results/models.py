@@ -41,6 +41,8 @@ class Result(models.Model):
 
     emailed = models.BooleanField(default=False)
 
+    is_latest = models.BooleanField(default=True)
+
     class Meta:
         ordering = ['-submitted_at']
 

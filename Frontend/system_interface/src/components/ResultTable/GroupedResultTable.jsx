@@ -79,9 +79,14 @@ const GroupedResultTable = ({ groups, groupBy, showStudent, plagiarismMap = {} }
                               <td style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>#{r.question_id}</td>
                               <td style={{ fontWeight: 600 }}>{formatScore(r.score)} {r.max_score !== undefined ? `/ ${r.max_score}` : ''}</td>
                               <td>
-                                <span className={getStatusBadgeClass(r.status)}>
-                                  {formatStatus(r.status)}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span className={getStatusBadgeClass(r.status)}>
+                                    {formatStatus(r.status)}
+                                  </span>
+                                  {r.is_latest === true && (
+                                    <span style={{ fontSize: '10px', background: 'var(--clr-primary)', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>Latest</span>
+                                  )}
+                                </div>
                               </td>
                               <td style={{ fontSize: 13 }}>{r.passed_testcases ?? '?'}/{r.total_testcases ?? '?'}</td>
                               <td style={{ fontSize: 13 }}>{formatDuration(r.execution_time)}</td>
