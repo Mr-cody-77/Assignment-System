@@ -302,10 +302,11 @@ def evaluate_task(task: dict) -> dict:
     )
 
     return {
-            'task_id': task.get('task_id', ''),  # <-- ADD THIS LINE
+            'task_id': task.get('task_id', ''),
             'roll_number': task.get('roll_number', ''),
             'question_id': task.get('question_id', ''),
             'language': language,
+            'code': task.get('data', {}).get('code', ''),
             'status': final_status,
             'score': score,
             'passed_testcases': passed_count,

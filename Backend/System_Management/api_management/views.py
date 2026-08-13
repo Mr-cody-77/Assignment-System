@@ -470,3 +470,44 @@ class StopServersView(APIView):
         threading.Thread(target=kill_later, daemon=True).start()
         return Response({"status": "stopping"}, status=status.HTTP_200_OK)
 
+
+class ProxySubmitTestView(APIView):
+    """
+    Proxies test submissions to Central DB.
+    If Central DB is offline, queues the submission locally.
+    """
+    def post(self, request):
+        test_id = request.data.get('test_id')
+        authorization = request.headers.get('Authorization', '')
+        
+        db = runtime.database_server
+        if not db:
+            from api_management.models import PendingTestSubmission
+            PendingTestSubmission.objects.create(
+                test_id=str(test_id) if test_id else '',
+                authorization=authorization
+            )
+            return Response({'success': True, 'message': 'Test submitted offline. Will sync on reconnect.'}, status=200)
+            
+        url = f"http://{db['ip']}:{db['port']}/api/tests/submit/"
+        try:
+            req = urllib.request.Request(url, data=json.dumps(request.data).encode(), method='POST')
+            req.add_header('Content-Type', 'application/json')
+            if authorization:
+                req.add_header('Authorization', authorization)
+                
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return Response(json.loads(response.read().decode()), status=response.status)
+        except urllib.error.HTTPError as e:
+            try:
+                return Response(json.loads(e.read().decode()), status=e.code)
+            except:
+                return Response({'error': str(e)}, status=e.code)
+        except Exception as e:
+            # Re-queue on network error
+            from api_management.models import PendingTestSubmission
+            PendingTestSubmission.objects.create(
+                test_id=str(test_id) if test_id else '',
+                authorization=authorization
+            )
+            return Response({'success': True, 'message': 'Test submitted offline (network error).'}, status=200)
