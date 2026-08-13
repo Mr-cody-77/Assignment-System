@@ -261,33 +261,33 @@ class TaskStatusView(APIView):
 
 """ Reciever Side Functions """
 
-from Services.Receiver_Server.runtime import runtime
+from Services.Receiver_Server.runtime import runtime as receiver_runtime
 from Services.Receiver_Server.load_checker import get_predicted_score
 
 class LoadView(APIView):
-
     def get(self, request):
-
-        return Response(
-            {
-                "node_id": runtime.node_id,
-                "hostname": runtime.hostname,
-                "ip": runtime.ip,
-                "port": runtime.port,
-
-                "cpu_usage": runtime.cpu_usage,
-                "memory_usage": runtime.memory_usage,
-                "io_wait": runtime.io_wait,
-
-                "active_workers": runtime.active_workers,
-                "inflight_tasks": runtime.inflight_tasks,
-                "completed_tasks": runtime.completed_tasks,
-                "workers_limit": runtime.workers_limit,
-
-                "current_load_score": get_runtime_score(runtime),
+        try:
+            return Response({
+                "status": "success",
+                "node_id": receiver_runtime.node_id,
+                "hostname": receiver_runtime.hostname,
+                "ip": receiver_runtime.ip,
+                "port": receiver_runtime.port,
+                
+                "cpu_usage": receiver_runtime.cpu_usage,
+                "memory_usage": receiver_runtime.memory_usage,
+                "io_wait": receiver_runtime.io_wait,
+                
+                "active_workers": receiver_runtime.active_workers,
+                "inflight_tasks": receiver_runtime.inflight_tasks,
+                "completed_tasks": receiver_runtime.completed_tasks,
+                "workers_limit": receiver_runtime.workers_limit,
+                
+                "current_load_score": get_predicted_score(receiver_runtime),
             },
-            status=status.HTTP_200_OK,
-        )
+            status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 class TaskTokenView(APIView):
     def post(self, request):
@@ -308,7 +308,7 @@ class TaskTokenView(APIView):
 
         # Generate a single-use task acceptance token
         token = str(uuid.uuid4())
-        runtime.register_task_token(task_id, token)
+        receiver_runtime.register_task_token(task_id, token)
 
         return Response(
             {"status": "accept", "token": token},
@@ -329,7 +329,7 @@ class AcceptedTaskView(APIView):
             ""
         )
 
-        if not runtime.validate_task_token(
+        if not receiver_runtime.validate_task_token(
             task_id,
             token,
         ):
@@ -469,7 +469,8 @@ class StopServersView(APIView):
 
         threading.Thread(target=kill_later, daemon=True).start()
         return Response({"status": "stopping"}, status=status.HTTP_200_OK)
-
+
+
 
 class ProxySubmitTestView(APIView):
     """
@@ -499,6 +500,15 @@ class ProxySubmitTestView(APIView):
             with urllib.request.urlopen(req, timeout=5) as response:
                 return Response(json.loads(response.read().decode()), status=response.status)
         except urllib.error.HTTPError as e:
+            if e.code == 404 or e.code >= 500:
+                # Might be hitting wrong server or Central DB is down
+                from api_management.models import PendingTestSubmission
+                PendingTestSubmission.objects.create(
+                    test_id=str(test_id) if test_id else '',
+                    authorization=authorization
+                )
+                return Response({'success': True, 'message': f'Test submitted offline (Server error {e.code}). Will sync on reconnect.'}, status=200)
+            
             try:
                 return Response(json.loads(e.read().decode()), status=e.code)
             except:

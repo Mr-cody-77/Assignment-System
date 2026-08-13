@@ -181,6 +181,13 @@ def _re_announce_loop(zc, info):
         time.sleep(RE_ANNOUNCE_INTERVAL)
 
         try:
+            # Check if IP has changed
+            current_ip = _get_local_ip()
+            if runtime.ip != current_ip:
+                logger.info(f"Network IP changed from {runtime.ip} to {current_ip}. Restarting discovery...")
+                threading.Thread(target=restart_discovery_safe, daemon=True).start()
+                break # Exit this old loop, a new one will start
+
             with runtime.lock:
                 load = get_runtime_score(receiver_runtime)
 
@@ -204,6 +211,14 @@ def _re_announce_loop(zc, info):
 
         except Exception as e:
             logger.warning(f"Reannounce failed: {e}")
+
+def restart_discovery_safe():
+    try:
+        stop_discovery()
+    except:
+        pass
+    time.sleep(2)
+    start_discovery()
 
 
 def start_discovery():

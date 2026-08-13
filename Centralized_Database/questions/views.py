@@ -165,30 +165,9 @@ class StartTestView(APIView):
 
 class SubmitTestView(APIView):
     """Student submits/finishes a test. Results become visible only after this."""
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        user = request.user
-
-        # Support expired tokens synced by the offline daemon
-        if not user or not user.is_authenticated:
-            auth_header = request.headers.get('Authorization')
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-                import jwt
-                from django.conf import settings
-                from users.models import User
-                try:
-                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
-                    user_id = payload.get('user_id')
-                    if user_id:
-                        user = User.objects.get(id=user_id)
-                except Exception as e:
-                    pass
-
-        if not user or not user.is_authenticated:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-
         test_id = request.data.get('test_id')
         if not test_id:
             # Fall back to the currently active test
@@ -201,25 +180,62 @@ class SubmitTestView(APIView):
             except Test.DoesNotExist:
                 return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if TestSubmission.objects.filter(test=test, student=user).exists():
+        if TestSubmission.objects.filter(test=test, student=request.user).exists():
             return Response({'error': 'Test already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        TestSubmission.objects.create(test=test, student=user)
+        TestSubmission.objects.create(test=test, student=request.user)
         return Response({'success': True, 'message': 'Test submitted successfully.'})
 
     def get(self, request):
         """Return submitted test info.
         Teachers: all submissions (test_id + student roll_number).
         Students: just their own submitted test IDs."""
-        if not request.user or not request.user.is_authenticated:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-            
         if request.user.role == 'teacher':
             submissions = TestSubmission.objects.all().values('test_id', 'student__roll_number')
             return Response({'submissions': list(submissions)})
         else:
             submissions = TestSubmission.objects.filter(student=request.user).values_list('test_id', flat=True)
             return Response({'submitted_test_ids': list(submissions)})
+
+class SyncSubmitTestView(APIView):
+    """Offline Node Backend sync endpoint for test submissions."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Missing authorization'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        token = auth_header.split(' ')[1]
+        import jwt
+        from django.conf import settings
+        from users.models import User
+        
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
+            user_id = payload.get('user_id')
+            if not user_id:
+                return Response({'error': 'Invalid token payload'}, status=status.HTTP_401_UNAUTHORIZED)
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        test_id = request.data.get('test_id')
+        if not test_id:
+            test = Test.objects.filter(is_live=True).first()
+            if not test:
+                return Response({'error': 'No active test'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            try:
+                test = Test.objects.get(id=test_id)
+            except Test.DoesNotExist:
+                return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not TestSubmission.objects.filter(test=test, student=user).exists():
+            TestSubmission.objects.create(test=test, student=user)
+            
+        return Response({'success': True, 'message': 'Test synced successfully.'})
 
 # Keep old question views for backward compatibility with submission pipelines if needed
 class QuestionListView(APIView):

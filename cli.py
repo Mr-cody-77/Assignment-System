@@ -82,9 +82,7 @@ def main():
                 cwd=ASSIGNMENT_NODE_DIR,
                 name="Headless Node",
                 env_vars={
-                    "NODE_PORT": str(args.port),
-                    "DATABASE_SERVER_IP": "127.0.0.1",
-                    "DATABASE_SERVER_PORT": "8001"
+                    "NODE_PORT": str(args.port)
                 } 
             )
 
@@ -116,9 +114,7 @@ def main():
                             cwd=ASSIGNMENT_NODE_DIR,
                             name="Node Backend",
                             env_vars={
-                                "NODE_PORT": str(args.port),
-                                "DATABASE_SERVER_IP": "127.0.0.1",
-                                "DATABASE_SERVER_PORT": "8001"
+                                "NODE_PORT": str(args.port)
                             }
                         )
             

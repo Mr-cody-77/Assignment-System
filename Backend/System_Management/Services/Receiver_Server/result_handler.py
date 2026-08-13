@@ -89,6 +89,13 @@ def handle_result(result: dict,authorization: str) -> bool:
         except Exception:
             pass
 
+        # If it's a 404 or 5xx, it might be hitting the wrong endpoint due to fallback IP/Port. 
+        # Queue it in Safe Mode so it doesn't get lost!
+        if e.code == 404 or e.code >= 500:
+            print(f"HTTP error {e.code} pushing result. Might be wrong server. Falling back to Safe Mode queue.")
+            threading.Thread(target=queue_pending_result, args=(result, authorization)).start()
+            return True
+
         return False
 
     except (urllib.error.URLError, TimeoutError, ConnectionError) as e:

@@ -1,18 +1,23 @@
-
-
 # Log files
 *.log
 logs/
+stderr.txt
+schtasks_output.txt
 
+# Databases and caches
+*.sqlite3
+__pycache__/
+
+# Environments
 venv/
 .venv/
-__pycache__/
-installer/
-laucher/
 .env
 .env.*
 !.env.example
 
+# Build/System artifacts
+installer/
+laucher/
 system_lock_engine/
 
 # Debug and test scripts
@@ -20,4 +25,3 @@ debug_run.txt
 schedule_cache.json
 test_net.py
 test_gemini.py
-
