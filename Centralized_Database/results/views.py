@@ -33,9 +33,23 @@ def export_results_excel(request):
     """
     test_id = request.query_params.get('test_id')
     
-    queryset = Result.objects.select_related('student', 'question').all()
+    queryset = Result.objects.select_related('student').all()
+    
+    # Map question_id (string) to test_id to avoid N+1 queries
+    from questions.models import Question
+    q_map = {str(q.id): q.test_id for q in Question.objects.all()}
+    
+    # Map plagiarism incidents: (student_id, question_id_str) -> max_similarity_score
+    from results.models import PlagiarismDetected
+    plag_map = {}
+    for p in PlagiarismDetected.objects.all():
+        key = (p.flagged_student_id_id, str(p.question_id))
+        if key not in plag_map or p.similarity_score > plag_map[key]:
+            plag_map[key] = p.similarity_score
+            
+    # Filter by test_id if provided (in python since question_id is a string field)
     if test_id:
-        queryset = queryset.filter(question__test_id=test_id)
+        queryset = [r for r in queryset if str(q_map.get(str(r.question_id))) == str(test_id)]
         
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -68,20 +82,27 @@ def export_results_excel(request):
     
     # Populate data
     for result in queryset:
+        student = result.student
+        test_val = q_map.get(str(result.question_id), 'Unknown')
+        
+        # Determine plagiarism for this student's question submission
+        plag_score = plag_map.get((student.id, str(result.question_id)), 0.0)
+        is_flagged = plag_score > 0.0
+        
         row = [
-            result.student.name or 'N/A',
-            result.student.roll_number,
-            result.student.department or 'N/A',
-            result.question.test_id,
-            result.question.id,
+            student.name or 'N/A',
+            student.roll_number,
+            student.department or 'N/A',
+            test_val,
+            result.question_id,
             result.score,
-            f"{result.plagiarism_score:.2f}%" if result.plagiarism_score else "0%",
-            "Yes" if result.plagiarism_flagged else "No",
+            f"{plag_score * 100:.2f}%" if is_flagged else "0%",
+            "Yes" if is_flagged else "No",
             result.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if result.submitted_at else "N/A"
         ]
         ws.append(row)
         
-        if result.plagiarism_flagged:
+        if is_flagged:
             for cell in ws[ws.max_row]:
                 cell.fill = plagiarism_fill
                 
