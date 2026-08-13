@@ -4,7 +4,7 @@ import requests
 import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 
 from .models import Test, Question, TestCase, HiddenTestCase, TestAttempt, TestSubmission, LockdownSchedule
@@ -165,9 +165,30 @@ class StartTestView(APIView):
 
 class SubmitTestView(APIView):
     """Student submits/finishes a test. Results become visible only after this."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
+        user = request.user
+
+        # Support expired tokens synced by the offline daemon
+        if not user or not user.is_authenticated:
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+                import jwt
+                from django.conf import settings
+                from users.models import User
+                try:
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
+                    user_id = payload.get('user_id')
+                    if user_id:
+                        user = User.objects.get(id=user_id)
+                except Exception as e:
+                    pass
+
+        if not user or not user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
         test_id = request.data.get('test_id')
         if not test_id:
             # Fall back to the currently active test
@@ -180,16 +201,19 @@ class SubmitTestView(APIView):
             except Test.DoesNotExist:
                 return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if TestSubmission.objects.filter(test=test, student=request.user).exists():
+        if TestSubmission.objects.filter(test=test, student=user).exists():
             return Response({'error': 'Test already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        TestSubmission.objects.create(test=test, student=request.user)
+        TestSubmission.objects.create(test=test, student=user)
         return Response({'success': True, 'message': 'Test submitted successfully.'})
 
     def get(self, request):
         """Return submitted test info.
         Teachers: all submissions (test_id + student roll_number).
         Students: just their own submitted test IDs."""
+        if not request.user or not request.user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
         if request.user.role == 'teacher':
             submissions = TestSubmission.objects.all().values('test_id', 'student__roll_number')
             return Response({'submissions': list(submissions)})
