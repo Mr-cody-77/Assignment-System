@@ -6,7 +6,7 @@ import Header from '../../components/Header/Header';
 import GroupedResultTable from '../../components/ResultTable/GroupedResultTable';
 import StatCard from '../../components/common/StatCard';
 import SearchBar from '../../components/SearchBar/SearchBar';
-import { getResults } from '../../services/resultService';
+import { getResults, exportResultsExcel } from '../../services/resultService';
 import { getAllTests, getSubmittedTests } from '../../services/testService';
 import { exportToCSV, filterData } from '../../utils/helpers';
 import { averageScorePercent, formatScore } from '../../utils/formatters';
@@ -139,8 +139,9 @@ const StudentResults = () => {
       if (!groupsMap[key]) {
         groupsMap[key] = {
           id: key,
-          title: r.student || r.roll_number,
-          subtitle: r.student ? r.roll_number : '',
+          title: r.student_name || r.student || r.roll_number,
+          subtitle: (r.student_name || r.student) ? r.roll_number : '',
+          department: r.student_department || 'N/A',
           marks: 0,
           max_marks: selectedTestId ? totalTestMarks : undefined,
           questionsDone: new Set(),
@@ -172,13 +173,23 @@ const StudentResults = () => {
           subtitle="All student submissions"
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           actions={
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => exportToCSV(filteredResults, 'results.csv')}
-              disabled={filteredResults.length === 0}
-            >
-              ⬇ Export CSV
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => exportToCSV(filteredResults, 'results.csv')}
+                disabled={filteredResults.length === 0}
+              >
+                ⬇ Export CSV
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => exportResultsExcel(selectedTestId)}
+                disabled={filteredResults.length === 0 || !selectedTestId}
+                title={!selectedTestId ? 'Select a test to export Excel' : ''}
+              >
+                ⬇ Export Excel
+              </button>
+            </div>
           }
         />
         <div className="page-body">

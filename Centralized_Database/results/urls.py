@@ -2,7 +2,8 @@ from django.urls import path
 
 from .views import (
     push_result,
-    get_results
+    get_results,
+    export_results_excel
 )
 
 # ── PLAGIARISM DETECTION — new view imports ───────────────────────────────────
@@ -14,14 +15,14 @@ from .views import (
 )
 
 urlpatterns = [
-
     # ── Existing endpoints (unchanged) ────────────────────────────────────────
     path('push_result/', push_result),
     path('result/', get_results),
+    path('export_excel/', export_results_excel, name='export-results-excel'),
 
     # ── Plagiarism detection — new endpoints only ─────────────────────────────
     path('plagiarism/ingest/', plagiarism_ingest),
     path('plagiarism/teacher/', plagiarism_teacher_view),
     path('plagiarism/student/', plagiarism_student_view),
     path('code-history/', code_history_view),
-]
+]

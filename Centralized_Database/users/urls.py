@@ -7,6 +7,7 @@ from .views import (
     refresh_view,
     update_email,
     change_password,
+    bulk_upload_students,
 )
 
 urlpatterns = [
@@ -16,4 +17,5 @@ urlpatterns = [
     path('add_teacher/', add_teacher),
     path('update_email/', update_email),
     path('change_password/', change_password),
+    path('bulk_upload_students/', bulk_upload_students),
 ]

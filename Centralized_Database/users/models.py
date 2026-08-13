@@ -6,6 +6,7 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ('teacher', 'Teacher'),
         ('student', 'Student'),
+        ('admin', 'Admin'),
     )
 
     role = models.CharField(
@@ -20,6 +21,9 @@ class User(AbstractUser):
         null=True,
         unique=True,
     )
+
+    name = models.CharField(max_length=255, blank=True, default='')
+    department = models.CharField(max_length=100, blank=True, default='N/A')
 
     def save(self, *args, **kwargs):
         if self.is_superuser:

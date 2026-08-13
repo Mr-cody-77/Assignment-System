@@ -21,15 +21,17 @@ class PushResultSerializer(serializers.Serializer):
 
 
 class ResultSerializer(serializers.ModelSerializer):
-    student = serializers.CharField(
-        source='student.username'
-    )
+    student = serializers.CharField(source='student.username', read_only=True)
+    student_name = serializers.CharField(source='student.name', read_only=True)
+    student_department = serializers.CharField(source='student.department', read_only=True)
 
     class Meta:
         model = Result
         fields = [
             'id',
             'student',
+            'student_name',
+            'student_department',
             'roll_number',
             'question_id',
             'score',

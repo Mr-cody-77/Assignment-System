@@ -22,8 +22,31 @@ export const addStudent = async (roll_number) => {
  * Response : { success, username, role }
  */
 export const addTeacher = async (username, password) => {
-  const res = await centralRequest.post(endpoints.addTeacher(), { username, password });
-  return res.data;
+  try {
+    const response = await centralRequest.post(endpoints.addTeacher(), {
+      username,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const bulkUploadStudents = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await centralRequest.post(endpoints.bulkUploadStudents(), formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 /**

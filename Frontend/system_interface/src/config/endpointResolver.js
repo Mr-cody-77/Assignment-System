@@ -20,6 +20,7 @@ export const endpoints = {
   refresh: () => `${central()}/api/users/refresh/`,
   addStudent: () => `${central()}/api/users/add_student/`,
   addTeacher: () => `${central()}/api/users/add_teacher/`,
+  bulkUploadStudents: () => `${central()}/api/users/bulk_upload_students/`,
   updateEmail: () => `${central()}/api/users/update_email/`,
   changePassword: () => `${central()}/api/users/change_password/`,
 
@@ -37,6 +38,7 @@ export const endpoints = {
 
   // ── Results (Central Server) ─────────────────────────────
   results: () => `${central()}/api/results/result/`,
+  exportExcel: () => `${central()}/api/results/export_excel/`,
   codeHistory: () => `${central()}/api/results/code-history/`,
 
   // ── Schedule (Central Server) ────────────────────────────

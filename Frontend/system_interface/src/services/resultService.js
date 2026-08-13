@@ -30,6 +30,27 @@ export const getMyResults = async (roll_number) => {
   return res.data;
 };
 
+export const exportResultsExcel = async (testId) => {
+  try {
+    const url = testId ? `${endpoints.exportExcel()}?test_id=${testId}` : endpoints.exportExcel();
+    const response = await centralRequest.get(url, { responseType: 'blob' });
+    
+    // Create a blob from the response
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `results_export_${testId || 'all'}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Error downloading Excel file:', error);
+    throw error;
+  }
+};
+
 export const getCodeHistory = async (roll_number = null, question_id = null) => {
   const params = new URLSearchParams();
   if (roll_number) params.append('roll_number', roll_number);

@@ -24,7 +24,8 @@ const GroupedResultTable = ({ groups, groupBy, showStudent, plagiarismMap = {} }
         <thead>
           <tr>
             <th style={{ width: 40 }}></th>
-            <th>{groupBy === 'student' ? 'Student' : 'Test'}</th>
+            <th>{groupBy === 'student' ? 'Student Info' : 'Test'}</th>
+            <th>Department</th>
             <th>Total Marks</th>
             <th>Questions Attempted</th>
           </tr>
@@ -42,7 +43,10 @@ const GroupedResultTable = ({ groups, groupBy, showStudent, plagiarismMap = {} }
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{group.title}</div>
-                  {group.subtitle && <div style={{ fontSize: 12, color: 'var(--clr-text-3)' }}>{group.subtitle}</div>}
+                  {group.subtitle && <div style={{ fontSize: 12, color: 'var(--clr-text-3)' }}>Roll: {group.subtitle}</div>}
+                </td>
+                <td style={{ color: 'var(--clr-text-2)' }}>
+                  {group.department || 'N/A'}
                 </td>
                 <td style={{ fontWeight: 600, color: 'var(--clr-primary)' }}>
                   {formatScore(group.marks)} {group.max_marks !== undefined ? `/ ${group.max_marks}` : ''}
@@ -55,7 +59,7 @@ const GroupedResultTable = ({ groups, groupBy, showStudent, plagiarismMap = {} }
               {/* Expanded Details Row */}
               {expandedRow === group.id && (
                 <tr>
-                  <td colSpan={4} style={{ padding: 0, backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                  <td colSpan={5} style={{ padding: 0, backgroundColor: 'rgba(0,0,0,0.2)' }}>
                     <div style={{ padding: '16px 32px' }}>
                       <table style={{ margin: 0, border: '1px solid var(--clr-border)', borderRadius: 8, overflow: 'hidden' }}>
                         <thead style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>

@@ -47,3 +47,4 @@ Werkzeug==3.1.8
 whitenoise==6.12.0
 zeroconf==0.148.0
 google-generativeai
+openpyxl==3.1.2

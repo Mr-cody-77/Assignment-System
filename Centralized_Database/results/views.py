@@ -21,6 +21,93 @@ from .services import store_result
 from .models import Result
 from users.models import User
 
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from django.http import HttpResponse
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTeacher])
+def export_results_excel(request):
+    """
+    Export results as an Excel sheet containing Student Name, Roll Number, Department, Score, etc.
+    """
+    test_id = request.query_params.get('test_id')
+    
+    queryset = Result.objects.select_related('student', 'question').all()
+    if test_id:
+        queryset = queryset.filter(question__test_id=test_id)
+        
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Student Results"
+    
+    # Define headers
+    headers = [
+        "Student Name", 
+        "Roll Number", 
+        "Department", 
+        "Test ID", 
+        "Question ID", 
+        "Score", 
+        "Plagiarism Score", 
+        "Flagged", 
+        "Submitted At"
+    ]
+    ws.append(headers)
+    
+    # Styling
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    
+    for col_num, cell in enumerate(ws[1], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+        
+    plagiarism_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+    
+    # Populate data
+    for result in queryset:
+        row = [
+            result.student.name or 'N/A',
+            result.student.roll_number,
+            result.student.department or 'N/A',
+            result.question.test_id,
+            result.question.id,
+            result.score,
+            f"{result.plagiarism_score:.2f}%" if result.plagiarism_score else "0%",
+            "Yes" if result.plagiarism_flagged else "No",
+            result.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if result.submitted_at else "N/A"
+        ]
+        ws.append(row)
+        
+        if result.plagiarism_flagged:
+            for cell in ws[ws.max_row]:
+                cell.fill = plagiarism_fill
+                
+    # Auto-adjust column widths
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+        
+    # Generate response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"results_export_{test_id if test_id else 'all'}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    
+    return response
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def push_result(request):
