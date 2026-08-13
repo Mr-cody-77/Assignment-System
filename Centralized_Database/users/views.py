@@ -329,7 +329,7 @@ def _parse_file(uploaded_file):
             content = uploaded_file.read()
             # Try to decode
             try:
-                text = content.decode('utf-8')
+                text = content.decode('utf-8-sig')
             except UnicodeDecodeError:
                 text = content.decode('latin-1')
 
