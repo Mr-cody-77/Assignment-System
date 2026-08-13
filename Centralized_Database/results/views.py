@@ -40,12 +40,17 @@ def export_results_excel(request):
     q_map = {str(q.id): q.test_id for q in Question.objects.all()}
     
     # Map plagiarism incidents: (student_id, question_id_str) -> max_similarity_score
-    from results.models import PlagiarismDetected
+    from results.models import PlagiarismDetected, SubmittedSolution
     plag_map = {}
     for p in PlagiarismDetected.objects.all():
         key = (p.flagged_student_id_id, str(p.question_id))
         if key not in plag_map or p.similarity_score > plag_map[key]:
             plag_map[key] = p.similarity_score
+            
+    # Map plagiarism checked status: (roll_number, question_id_str) -> bool
+    submission_checked_map = {}
+    for sub in SubmittedSolution.objects.all():
+        submission_checked_map[(sub.roll_number, str(sub.question_id))] = sub.plagiarism_checked
             
     # Filter by test_id if provided (in python since question_id is a string field)
     if test_id:
@@ -85,9 +90,19 @@ def export_results_excel(request):
         student = result.student
         test_val = q_map.get(str(result.question_id), 'Unknown')
         
-        # Determine plagiarism for this student's question submission
-        plag_score = plag_map.get((student.id, str(result.question_id)), 0.0)
-        is_flagged = plag_score > 0.0
+        is_checked = submission_checked_map.get((student.roll_number, str(result.question_id)), False)
+        
+        if not is_checked:
+            plag_score_text = "Plagiarism detection is under process"
+            flagged_text = "Under process"
+            is_flagged = False
+        else:
+            # Determine plagiarism for this student's question submission
+            plag_score = plag_map.get((student.id, str(result.question_id)), 0.0)
+            is_flagged = plag_score > 0.0
+            
+            plag_score_text = f"{plag_score * 100:.2f}%" if is_flagged else "0%"
+            flagged_text = "Yes" if is_flagged else "No"
         
         row = [
             student.name or 'N/A',
@@ -96,8 +111,8 @@ def export_results_excel(request):
             test_val,
             result.question_id,
             result.score,
-            f"{plag_score * 100:.2f}%" if is_flagged else "0%",
-            "Yes" if is_flagged else "No",
+            plag_score_text,
+            flagged_text,
             result.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if result.submitted_at else "N/A"
         ]
         ws.append(row)
