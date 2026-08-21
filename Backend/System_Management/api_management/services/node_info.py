@@ -132,7 +132,7 @@ def handle_node_info() -> dict:
             "inflight_tasks": receiver_runtime.inflight_tasks,
             "completed_tasks": receiver_runtime.completed_tasks,
             "workers_limit": receiver_runtime.workers_limit,
-            "current_load_score": get_predicted_score(receiver_runtime),
+            "current_load_score": get_predicted_score(),
             "is_gateway": True
         }
         nodes_info.insert(0, gateway_info)

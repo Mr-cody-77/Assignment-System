@@ -283,7 +283,7 @@ class LoadView(APIView):
                 "completed_tasks": receiver_runtime.completed_tasks,
                 "workers_limit": receiver_runtime.workers_limit,
                 
-                "current_load_score": get_predicted_score(receiver_runtime),
+                "current_load_score": get_predicted_score(),
             },
             status=status.HTTP_200_OK)
         except Exception as e:
