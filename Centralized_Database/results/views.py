@@ -156,7 +156,8 @@ def push_result(request):
     data = serializer.validated_data
 
     try:
-        student = User.objects.get(roll_number=data["roll_number"])
+        roll_number_clean = str(data["roll_number"]).strip()
+        student = User.objects.get(roll_number__iexact=roll_number_clean)
         if data.get("email"):
             student.email = data["email"]
             student.save()

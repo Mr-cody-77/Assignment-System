@@ -11,7 +11,7 @@ class PushResultSerializer(serializers.Serializer):
     passed_testcases = serializers.IntegerField(default=0)
     total_testcases = serializers.IntegerField(default=0)
     execution_time = serializers.FloatField(default=0)
-    email = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     # ----------------------------------------------------------
 
     # (You can keep these if you use them elsewhere, otherwise they are optional)

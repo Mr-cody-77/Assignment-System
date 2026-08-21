@@ -115,6 +115,16 @@ def handle_node_info() -> dict:
             "port": 8000,
         }
 
+    # Fetch gateway (self) metrics
+    try:
+        # Use 127.0.0.1 since we are the gateway
+        gateway_info = fetch_node_load("127.0.0.1", sender_runtime.port)
+        # Mark it explicitly as gateway
+        gateway_info["is_gateway"] = True 
+        nodes_info.insert(0, gateway_info)
+    except Exception as e:
+        print(f"Failed to fetch gateway load: {e}")
+
     return {
             "database_server": db_info,
             

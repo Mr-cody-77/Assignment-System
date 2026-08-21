@@ -312,7 +312,7 @@ def evaluate_task(task: dict) -> dict:
             'passed_testcases': passed_count,
             'total_testcases': len(test_cases),
             'execution_time': round(total_execution_time / 1000, 3),
-            'email': task.get('email', ''),
+            'email': task.get('email') or '',
         }
 
 

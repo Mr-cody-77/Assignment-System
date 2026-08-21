@@ -151,15 +151,15 @@ class StartTestView(APIView):
         if not test:
             return Response({'error': 'No active test'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if the student has already attempted this test
-        if TestAttempt.objects.filter(test=test, student=request.user).exists():
+        # Check if the student has already SUBMITTED this test
+        if TestSubmission.objects.filter(test=test, student=request.user).exists():
             return Response(
-                {'error': 'You have already attempted this test.'}, 
+                {'error': 'You have already completed and submitted this test.'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
         # Record the attempt
-        TestAttempt.objects.create(test=test, student=request.user)
+        TestAttempt.objects.get_or_create(test=test, student=request.user)
         
         return Response(TestSerializer(test).data)
 
@@ -609,7 +609,7 @@ class TestReattemptView(APIView):
         if not roll_numbers:
             return Response({'error': 'No roll numbers provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        students = User.objects.filter(roll_number__in=roll_numbers)
+        students = User.objects.filter(roll_number__in=[r.upper() for r in roll_numbers])
         
         # Delete their TestSubmission
         TestSubmission.objects.filter(test=test, student__in=students).delete()
