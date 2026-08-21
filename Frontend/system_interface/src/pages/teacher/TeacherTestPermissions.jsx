@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
-import { central } from '../../config/endpointResolver';
+import runtimeConfig from '../../config/runtimeConfig';
 
 const TeacherTestPermissions = () => {
   const { id } = useParams();
@@ -30,7 +30,7 @@ const TeacherTestPermissions = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${central()}/api/questions/tests/${id}/grant_reattempt/`, {
+      const response = await fetch(`${runtimeConfig.getCentralURL()}/api/questions/tests/${id}/grant_reattempt/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
