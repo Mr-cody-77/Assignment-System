@@ -30,7 +30,7 @@ const TeacherTestPermissions = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${runtimeConfig.getCentralURL()}/api/questions/tests/${id}/grant_reattempt/`, {
+      const response = await fetch(`${runtimeConfig.getCentralURL()}/api/tests/${id}/grant_reattempt/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

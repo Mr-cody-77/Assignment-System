@@ -61,6 +61,8 @@ export const endpoints = {
     `${runtimeConfig.getBackendURL()}/api/problems/${id}/`,
   proxiedTestById: (id) =>
     `${runtimeConfig.getBackendURL()}/api/tests/${id}/`,
+  proxiedSubmitTest: () =>
+    `${runtimeConfig.getBackendURL()}/api/tests/submit/`,
 
   // ── Plagiarism Detection (Central Server) — new, isolated ─
   plagiarismTeacher: () => `${central()}/api/results/plagiarism/teacher/`,

@@ -145,7 +145,7 @@ const AssignmentDetails = () => {
     try {
       // Submit the test formally
       if (testId) {
-        await submitTest(testId);
+        await submitTest(testId, user?.roll_number || user?.username);
         addToast('Test submitted successfully!', 'success');
       }
     } catch (err) {

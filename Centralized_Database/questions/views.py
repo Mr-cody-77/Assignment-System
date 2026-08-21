@@ -198,28 +198,44 @@ class SubmitTestView(APIView):
             return Response({'submitted_test_ids': list(submissions)})
 
 class SyncSubmitTestView(APIView):
-    """Offline Node Backend sync endpoint for test submissions."""
+    """Offline Node Backend sync endpoint for test submissions.
+    
+    Identifies the student by JWT token first, then falls back to
+    roll_number in the request body (sent by the sync daemon).
+    """
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return Response({'error': 'Missing authorization'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-        token = auth_header.split(' ')[1]
         import jwt
         from django.conf import settings
         from users.models import User
         
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
-            user_id = payload.get('user_id')
-            if not user_id:
-                return Response({'error': 'Invalid token payload'}, status=status.HTTP_401_UNAUTHORIZED)
-            user = User.objects.get(id=user_id)
-        except Exception as e:
-            return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        user = None
+        
+        # Strategy 1: Identify student via JWT token
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
+                user_id = payload.get('user_id')
+                if user_id:
+                    user = User.objects.get(id=user_id)
+            except Exception:
+                pass  # Fall through to roll_number fallback
+        
+        # Strategy 2: Identify student via roll_number in the request body
+        if user is None:
+            roll_number = request.data.get('roll_number')
+            if roll_number:
+                try:
+                    user = User.objects.get(roll_number=roll_number)
+                except User.DoesNotExist:
+                    pass
+        
+        if user is None:
+            return Response({'error': 'Could not identify student. Provide a valid token or roll_number.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         test_id = request.data.get('test_id')
         if not test_id:
@@ -236,6 +252,7 @@ class SyncSubmitTestView(APIView):
             TestSubmission.objects.create(test=test, student=user)
             
         return Response({'success': True, 'message': 'Test synced successfully.'})
+
 
 # Keep old question views for backward compatibility with submission pipelines if needed
 class QuestionListView(APIView):

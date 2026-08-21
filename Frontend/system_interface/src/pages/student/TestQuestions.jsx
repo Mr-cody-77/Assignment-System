@@ -480,7 +480,7 @@ const TestQuestions = () => {
 
     /* 1. Submit the test record */
     try {
-      await submitTest(testId);
+      await submitTest(testId, user?.roll_number || user?.username);
       addToast('Test submitted successfully!', 'success');
     } catch (err) {
       console.error('Failed to submit test:', err);

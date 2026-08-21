@@ -79,27 +79,38 @@ def run_sync_daemon():
                     logger.info(f"Sync daemon found {sub_count} pending test submissions.")
                     sub = PendingTestSubmission.objects.order_by('created_at').first()
                     if sub:
-                        url_sub = f"http://{db['ip']}:{db['port']}/api/tests/sync_submit/"
-                        sub_payload = json.dumps({"test_id": sub.test_id}).encode()
                         sub_headers = {"Content-Type": "application/json"}
+                        sub_payload_data = {"test_id": sub.test_id}
+                        if sub.roll_number:
+                            sub_payload_data["roll_number"] = sub.roll_number
+                        
+                        # Try JWT-authenticated sync first, fall back to roll_number-based sync
+                        success_sub = False
+                        
                         if sub.authorization:
                             sub_headers["Authorization"] = sub.authorization
-                            
+                        
+                        url_sub = f"http://{db['ip']}:{db['port']}/api/tests/sync_submit/"
+                        sub_payload = json.dumps(sub_payload_data).encode()
                         req_sub = urllib.request.Request(url_sub, data=sub_payload, headers=sub_headers, method="POST")
                         try:
                             with urllib.request.urlopen(req_sub, timeout=10) as response:
                                 if 200 <= response.status < 300:
-                                    sub.delete()
+                                    success_sub = True
                                     logger.info(f"Successfully synced test submission for test {sub.test_id} to Central DB.")
                         except urllib.error.HTTPError as e:
-                            # Do not drop on 404, as it means we hit the wrong server
-                            if 400 <= e.code < 500 and e.code != 404:
-                                logger.error(f"Central DB rejected test submission for test {sub.test_id} with client error {e.code}. Dropping from queue.")
-                                sub.delete()
+                            # Only drop on 400 (truly bad data). Retry on 401/403 (token might work later
+                            # or roll_number fallback will be used on Central side) and 404/5xx.
+                            if e.code == 400:
+                                logger.error(f"Central DB rejected test submission for test {sub.test_id} with 400 Bad Request. Dropping from queue.")
+                                success_sub = True  # Drop it — the data itself is invalid
                             else:
-                                logger.error(f"Server error {e.code} during test submission sync. Will retry later.")
+                                logger.warning(f"HTTP {e.code} during test submission sync for test {sub.test_id}. Will retry later.")
                         except Exception as e:
                             logger.warning(f"Network error during test submission sync: {e}")
+                        
+                        if success_sub:
+                            sub.delete()
                             
         except Exception as e:
             logger.error(f"Sync daemon encountered unexpected error: {e}")

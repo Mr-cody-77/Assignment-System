@@ -480,12 +480,14 @@ class ProxySubmitTestView(APIView):
     def post(self, request):
         test_id = request.data.get('test_id')
         authorization = request.headers.get('Authorization', '')
+        roll_number = request.data.get('roll_number', '')
         
         db = runtime.database_server
         if not db:
             from api_management.models import PendingTestSubmission
             PendingTestSubmission.objects.create(
                 test_id=str(test_id) if test_id else '',
+                roll_number=roll_number,
                 authorization=authorization
             )
             return Response({'success': True, 'message': 'Test submitted offline. Will sync on reconnect.'}, status=200)
@@ -505,6 +507,7 @@ class ProxySubmitTestView(APIView):
                 from api_management.models import PendingTestSubmission
                 PendingTestSubmission.objects.create(
                     test_id=str(test_id) if test_id else '',
+                    roll_number=roll_number,
                     authorization=authorization
                 )
                 return Response({'success': True, 'message': f'Test submitted offline (Server error {e.code}). Will sync on reconnect.'}, status=200)
@@ -518,6 +521,8 @@ class ProxySubmitTestView(APIView):
             from api_management.models import PendingTestSubmission
             PendingTestSubmission.objects.create(
                 test_id=str(test_id) if test_id else '',
+                roll_number=roll_number,
                 authorization=authorization
             )
             return Response({'success': True, 'message': 'Test submitted offline (network error).'}, status=200)
+

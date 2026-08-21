@@ -46,8 +46,12 @@ export const generateTestCases = async (data) => {
   return res.data;
 };
 
-export const submitTest = async (testId) => {
-  const res = await centralRequest.post(endpoints.submitTest(), { test_id: testId });
+export const submitTest = async (testId, roll_number = null) => {
+  const payload = { test_id: testId };
+  if (roll_number) {
+    payload.roll_number = roll_number;
+  }
+  const res = await backendRequest.post(endpoints.proxiedSubmitTest(), payload);
   return res.data;
 };
 
