@@ -108,9 +108,6 @@ class NodeListener:
         # -------------------------
         node_id = props.get("node_id", name)
 
-        if node_id == runtime.node_id:
-            return
-
         with runtime.lock:
             runtime.nodes[node_id] = {
                 "node_id": node_id,

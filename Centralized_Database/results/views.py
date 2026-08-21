@@ -50,7 +50,7 @@ def export_results_excel(request):
     # Map plagiarism checked status: (roll_number, question_id_str) -> bool
     submission_checked_map = {}
     for sub in SubmittedSolution.objects.all():
-        submission_checked_map[(sub.roll_number, str(sub.question_id))] = sub.plagiarism_checked
+        submission_checked_map[(str(sub.roll_number).strip().upper(), str(sub.question_id))] = sub.plagiarism_checked
             
     # Filter by test_id if provided (in python since question_id is a string field)
     if test_id:
@@ -90,7 +90,7 @@ def export_results_excel(request):
         student = result.student
         test_val = q_map.get(str(result.question_id), 'Unknown')
         
-        is_checked = submission_checked_map.get((student.roll_number, str(result.question_id)), False)
+        is_checked = submission_checked_map.get((str(student.roll_number).strip().upper(), str(result.question_id)), False)
         
         if not is_checked:
             plag_score_text = "Plagiarism detection is under process"
@@ -191,7 +191,7 @@ def get_results(request):
     # Student -> only own results
     else:
 
-        if roll_number != request.user.roll_number:
+        if roll_number and roll_number.lower() != request.user.roll_number.lower():
             return Response(
                 {
                     "success": False,
@@ -400,7 +400,7 @@ def code_history_view(request):
     
     queryset = CodeSubmissionHistory.objects.all()
     if roll_number:
-        queryset = queryset.filter(roll_number=roll_number)
+        queryset = queryset.filter(roll_number__iexact=str(roll_number).strip())
     if question_id:
         queryset = queryset.filter(question_id=question_id)
         

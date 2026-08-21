@@ -86,7 +86,7 @@ class PlagiarismDetectedTeacherSerializer(serializers.ModelSerializer):
     def get_flagged_code(self, obj):
         try:
             return SubmittedSolution.objects.get(
-                roll_number=obj.flagged_student_id.roll_number,
+                roll_number__iexact=str(obj.flagged_student_id.roll_number).strip(),
                 question_id=obj.question_id
             ).code
         except SubmittedSolution.DoesNotExist:
@@ -95,7 +95,7 @@ class PlagiarismDetectedTeacherSerializer(serializers.ModelSerializer):
     def get_copied_from_code(self, obj):
         try:
             return SubmittedSolution.objects.get(
-                roll_number=obj.copied_from_student_roll,
+                roll_number__iexact=str(obj.copied_from_student_roll).strip(),
                 question_id=obj.question_id
             ).code
         except SubmittedSolution.DoesNotExist:

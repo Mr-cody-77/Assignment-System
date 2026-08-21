@@ -230,7 +230,7 @@ class SyncSubmitTestView(APIView):
             roll_number = request.data.get('roll_number')
             if roll_number:
                 try:
-                    user = User.objects.get(roll_number=roll_number)
+                    user = User.objects.get(roll_number__iexact=str(roll_number).strip())
                 except User.DoesNotExist:
                     pass
         
@@ -609,12 +609,21 @@ class TestReattemptView(APIView):
         if not roll_numbers:
             return Response({'error': 'No roll numbers provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        students = User.objects.filter(roll_number__in=[r.upper() for r in roll_numbers])
-        
-        # Delete their TestSubmission
-        TestSubmission.objects.filter(test=test, student__in=students).delete()
-        
-        # Delete their TestAttempt
-        TestAttempt.objects.filter(test=test, student__in=students).delete()
-        
-        return Response({'success': True, 'message': f'Re-attempt granted for {students.count()} students.'})
+        try:
+            from django.db.models import Q
+            # Build case-insensitive query for roll numbers
+            query = Q()
+            for r in roll_numbers:
+                query |= Q(roll_number__iexact=r.strip())
+                
+            users_to_reattempt = User.objects.filter(query)
+            
+            if not users_to_reattempt.exists():
+                return Response({'error': 'No matching students found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            TestSubmission.objects.filter(test=test, student__in=users_to_reattempt).delete()
+            TestAttempt.objects.filter(test=test, student__in=users_to_reattempt).delete()
+            
+            return Response({'success': True, 'message': f'Re-attempt granted for {users_to_reattempt.count()} students.'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

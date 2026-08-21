@@ -81,15 +81,14 @@ const StudentResults = () => {
       });
     });
 
-    // Build a set of "testId:rollNumber" pairs from submissions
     const submittedPairs = new Set(
-      testSubmissions.map(s => `${s.test_id}:${s.student__roll_number}`)
+      testSubmissions.map(s => `${s.test_id}:${String(s.student__roll_number).toLowerCase()}`)
     );
 
     return results.filter(r => {
       const testId = questionToTestId[String(r.question_id)];
       if (!testId) return false; // no test found for this question
-      return submittedPairs.has(`${testId}:${r.roll_number}`);
+      return submittedPairs.has(`${testId}:${String(r.roll_number).toLowerCase()}`);
     });
   }, [results, tests, testSubmissions]);
 
