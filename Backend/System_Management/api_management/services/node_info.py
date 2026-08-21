@@ -115,12 +115,26 @@ def handle_node_info() -> dict:
             "port": 8000,
         }
 
-    # Fetch gateway (self) metrics
+    # Fetch gateway (self) metrics directly from memory to avoid deadlocks
     try:
-        # Use 127.0.0.1 since we are the gateway
-        gateway_info = fetch_node_load("127.0.0.1", sender_runtime.port)
-        # Mark it explicitly as gateway
-        gateway_info["is_gateway"] = True 
+        from Services.Receiver_Server.runtime import runtime as receiver_runtime
+        from Services.Receiver_Server.load_checker import get_predicted_score
+        
+        gateway_info = {
+            "node_id": receiver_runtime.node_id,
+            "hostname": receiver_runtime.hostname,
+            "ip": receiver_runtime.ip,
+            "port": receiver_runtime.port,
+            "cpu_usage": receiver_runtime.cpu_usage,
+            "memory_usage": receiver_runtime.memory_usage,
+            "io_wait": receiver_runtime.io_wait,
+            "active_workers": receiver_runtime.active_workers,
+            "inflight_tasks": receiver_runtime.inflight_tasks,
+            "completed_tasks": receiver_runtime.completed_tasks,
+            "workers_limit": receiver_runtime.workers_limit,
+            "current_load_score": get_predicted_score(receiver_runtime),
+            "is_gateway": True
+        }
         nodes_info.insert(0, gateway_info)
     except Exception as e:
         print(f"Failed to fetch gateway load: {e}")
