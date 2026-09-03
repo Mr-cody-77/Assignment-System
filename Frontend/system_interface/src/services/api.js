@@ -88,10 +88,14 @@ export const normalizeAuthUser = (payload = {}) => {
 };
 
 export const getStoredAccessToken = () =>
-  coerceToken(readStorage(ACCESS_TOKEN_KEY));
+  coerceToken(readStorage(ACCESS_TOKEN_KEY)) ||
+  coerceToken(readStorage('token')) ||
+  coerceToken(readStorage('access'));
 
 export const getStoredRefreshToken = () =>
-  coerceToken(readStorage(REFRESH_TOKEN_KEY));
+  coerceToken(readStorage(REFRESH_TOKEN_KEY)) ||
+  coerceToken(readStorage('refresh_token')) ||
+  coerceToken(readStorage('refresh'));
 
 export const getStoredUser = () => {
   const stored = readStorage(AUTH_USER_KEY) || readStorage(LEGACY_USER_KEY);

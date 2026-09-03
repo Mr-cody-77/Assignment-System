@@ -21,6 +21,6 @@ urlpatterns = [
     path("cache-questions/", CacheQuestionsView.as_view(), name="cache-questions"),
     path("problems/", ProxyQuestionsListView.as_view(), name="proxy-questions-list"),
     path("problems/<str:pk>/", ProxyQuestionView.as_view(), name="proxy-question"),
-    path("tests/<str:pk>/", ProxyTestView.as_view(), name="proxy-test"),
     path("tests/submit/", ProxySubmitTestView.as_view(), name="proxy-submit-test"),
+    path("tests/<str:pk>/", ProxyTestView.as_view(), name="proxy-test"),
 ]

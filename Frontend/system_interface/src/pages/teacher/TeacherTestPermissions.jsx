@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
-import runtimeConfig from '../../config/runtimeConfig';
+import { grantReattempt } from '../../services/testService';
 
 const TeacherTestPermissions = () => {
   const { id } = useParams();
@@ -29,26 +29,13 @@ const TeacherTestPermissions = () => {
         formData.append('file', file);
       }
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${runtimeConfig.getCentralURL()}/api/tests/${id}/grant_reattempt/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message || 'Permissions updated successfully.');
-        setRollNumbers('');
-        setFile(null);
-      } else {
-        setError(data.error || 'Failed to update permissions.');
-      }
+      const data = await grantReattempt(id, formData);
+      setMessage(data.message || 'Permissions updated successfully.');
+      setRollNumbers('');
+      setFile(null);
     } catch (err) {
-      setError('Network error occurred.');
+      const errMsg = err?.response?.data?.error || err?.response?.data?.detail || err?.message || 'Failed to update permissions.';
+      setError(errMsg);
     } finally {
       setLoading(false);
     }

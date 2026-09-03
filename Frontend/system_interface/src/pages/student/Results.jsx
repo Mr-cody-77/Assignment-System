@@ -109,13 +109,14 @@ const Results = () => {
     });
 
     // Filter out groups for tests that haven't been submitted
+    const normalizedSubmittedIds = new Set(submittedTestIds.map(String));
     return Object.values(groupsMap).map(g => ({
       ...g,
       questionsDone: g.questionsDone.size
     })).filter(g => {
       // Only show groups for submitted tests (or 'unassigned' if needed)
       if (g.id === 'unassigned') return false; // hide unassigned entirely
-      return submittedTestIds.includes(g.id);
+      return normalizedSubmittedIds.has(String(g.id));
     }).sort((a, b) => b.marks - a.marks);
   }, [results, tests, submittedTestIds]);
 

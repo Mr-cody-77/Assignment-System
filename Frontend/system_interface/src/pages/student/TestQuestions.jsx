@@ -402,12 +402,17 @@ const TestQuestions = () => {
         }
       } catch (err) {
         console.error('Failed to fetch test', err);
+        if (err?.response?.status === 403) {
+          clearExamStorage();
+          addToast(err?.response?.data?.error || 'Access restricted. You cannot access this test.', 'error');
+          navigate('/student');
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchTest();
-  }, [examActive]);
+  }, [examActive, navigate, addToast]);
 
   /* Clear exam state from localStorage */
   const clearExamStorage = () => {

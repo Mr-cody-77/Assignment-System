@@ -142,6 +142,15 @@ class ProxyQuestionView(APIView):
                         }
                     )
                     return Response(q_data, status=status.HTTP_200_OK)
+            except urllib.error.HTTPError as e:
+                # If central DB explicitly refused with 401, 403, or 404, forward the error
+                if e.code in (401, 403, 404):
+                    try:
+                        err_body = json.loads(e.read().decode())
+                        return Response(err_body, status=e.code)
+                    except Exception:
+                        return Response({"error": f"Request rejected by server with status {e.code}."}, status=e.code)
+                print(f"HTTP {e.code} from central DB for question {pk}, falling back to local cache if network error.")
             except Exception as e:
                 print(f"Failed to fetch question from central DB, falling back to local cache: {e}")
                 pass
@@ -180,11 +189,28 @@ class ProxyTestView(APIView):
                         }
                     )
                     return Response(test_data, status=status.HTTP_200_OK)
+            except urllib.error.HTTPError as e:
+                # If central DB explicitly refused with 401, 403, or 404, forward the error
+                if e.code in (401, 403, 404):
+                    try:
+                        err_body = json.loads(e.read().decode())
+                        return Response(err_body, status=e.code)
+                    except Exception:
+                        return Response({"error": f"Request rejected by server with status {e.code}."}, status=e.code)
+                print(f"HTTP {e.code} from central DB for test {pk}, falling back to local cache if network error.")
             except Exception as e:
                 print(f"Failed to fetch test from central DB, falling back to local cache: {e}")
                 pass
                 
         # 2. Fallback to offline SQLite cache
+        # Check if the test has been submitted offline
+        from api_management.models import PendingTestSubmission
+        if PendingTestSubmission.objects.filter(test_id=str(pk)).exists():
+            return Response(
+                {"error": "You have already submitted this test offline. Re-attempts are not allowed without teacher permission."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         try:
             cached_test = CachedTest.objects.get(test_id=str(pk))
             return Response(cached_test.data, status=status.HTTP_200_OK)
@@ -379,13 +405,11 @@ class TaskResultView(APIView):
 
         success = handle_result(payload, authorization)
 
-        # 2. <-- ADD THIS BLOCK: Update the local Node memory
         task_id = payload.get("task_id")
         if task_id:
             with lock:
                 if task_id in tasks:
-                    # Overwrite 'executing' with 'accepted', 'wrong_answer', etc.
-                    tasks[task_id]["status"] = payload.get("status", "completed")
+                    tasks[task_id]["status"] = "completed"
                     # Save the payload so React can display the Dropdown details
                     tasks[task_id]["result"] = payload 
 

@@ -31,6 +31,7 @@ export const endpoints = {
   toggleTestLive: (id) => `${central()}/api/tests/${id}/toggle-live/`,
   activeTest: () => `${central()}/api/tests/active/`,
   submitTest: () => `${central()}/api/tests/submit/`,
+  grantReattempt: (id) => `${central()}/api/tests/${id}/grant_reattempt/`,
   questions: () => `${central()}/api/questions/`,
   startTest: () => `${central()}/api/tests/start/`,
   questionById: (id) => `${central()}/api/questions/${id}/`,

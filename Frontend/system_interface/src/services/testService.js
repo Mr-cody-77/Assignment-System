@@ -59,3 +59,13 @@ export const getSubmittedTests = async () => {
   const res = await centralRequest.get(endpoints.submitTest());
   return res.data;
 };
+
+export const grantReattempt = async (testId, formData) => {
+  const res = await centralRequest.post(endpoints.grantReattempt(testId), formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return res.data;
+};
+

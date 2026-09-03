@@ -131,6 +131,16 @@ const TeacherTests = () => {
                               View
                             </button>
                             <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                navigate(`/teacher/tests/${test.id}/permissions`);
+                              }}
+                              title="Grant student re-attempt access"
+                            >
+                              🔑 Permissions
+                            </button>
+                            <button
                               className={`btn btn-sm ${test.is_live ? 'btn-danger' : 'btn-primary'}`}
                               onClick={(e) => handleToggleLive(e, test.id)}
                             >

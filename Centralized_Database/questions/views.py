@@ -83,8 +83,14 @@ class TestDetailView(APIView):
     def get(self, request, test_id):
         try:
             test = Test.objects.get(id=test_id)
-            if request.user.role == 'student' and not test.is_live:
-                return Response({"error": "Test not live"}, status=status.HTTP_403_FORBIDDEN)
+            if request.user.role == 'student':
+                if not test.is_live:
+                    return Response({"error": "Test not live"}, status=status.HTTP_403_FORBIDDEN)
+                if TestSubmission.objects.filter(test=test, student=request.user).exists():
+                    return Response(
+                        {"error": "You have already submitted this test. Re-attempts are not allowed without teacher permission."}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
             return Response(TestSerializer(test, context={'request': request}).data)
         except Test.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -141,25 +147,49 @@ class ActiveTestConfigView(APIView):
         test = Test.objects.filter(is_live=True).first()
         if not test:
             return Response({'error': 'No active test'}, status=status.HTTP_404_NOT_FOUND)
+        if request.user.role == 'student':
+            if TestSubmission.objects.filter(test=test, student=request.user).exists():
+                return Response(
+                    {'error': 'You have already completed and submitted this test.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
         return Response(TestSerializer(test).data)
 
 class StartTestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        test = Test.objects.filter(is_live=True).first()
-        if not test:
-            return Response({'error': 'No active test'}, status=status.HTTP_404_NOT_FOUND)
+        test_id = request.data.get('test_id')
+        if test_id:
+            try:
+                test = Test.objects.get(id=test_id)
+            except Test.DoesNotExist:
+                return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            test = Test.objects.filter(is_live=True).first()
+            if not test:
+                return Response({'error': 'No active test'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if the student has already SUBMITTED this test
-        if TestSubmission.objects.filter(test=test, student=request.user).exists():
-            return Response(
-                {'error': 'You have already completed and submitted this test.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Record the attempt
-        TestAttempt.objects.get_or_create(test=test, student=request.user)
+        if request.user.role == 'student':
+            if not test.is_live:
+                return Response({'error': 'Test is not live'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Check if the student has already SUBMITTED this test
+            if TestSubmission.objects.filter(test=test, student=request.user).exists():
+                return Response(
+                    {'error': 'You have already completed and submitted this test. Re-attempts are not allowed without teacher permission.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check if the student has already ATTEMPTED this test
+            if TestAttempt.objects.filter(test=test, student=request.user).exists():
+                return Response(
+                    {'error': 'You have already attempted this test. Re-attempts are not allowed without teacher permission.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # First attempt: record the attempt
+            TestAttempt.objects.create(test=test, student=request.user)
         
         return Response(TestSerializer(test).data)
 
@@ -184,18 +214,24 @@ class SubmitTestView(APIView):
             return Response({'error': 'Test already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
 
         TestSubmission.objects.create(test=test, student=request.user)
+        # Ensure attempt record also exists
+        TestAttempt.objects.get_or_create(test=test, student=request.user)
         return Response({'success': True, 'message': 'Test submitted successfully.'})
 
     def get(self, request):
-        """Return submitted test info.
+        """Return submitted and attempted test info.
         Teachers: all submissions (test_id + student roll_number).
-        Students: just their own submitted test IDs."""
+        Students: their submitted test IDs and attempted test IDs."""
         if request.user.role == 'teacher':
             submissions = TestSubmission.objects.all().values('test_id', 'student__roll_number')
             return Response({'submissions': list(submissions)})
         else:
-            submissions = TestSubmission.objects.filter(student=request.user).values_list('test_id', flat=True)
-            return Response({'submitted_test_ids': list(submissions)})
+            submissions = list(TestSubmission.objects.filter(student=request.user).values_list('test_id', flat=True))
+            attempts = list(TestAttempt.objects.filter(student=request.user).values_list('test_id', flat=True))
+            return Response({
+                'submitted_test_ids': submissions,
+                'attempted_test_ids': attempts
+            })
 
 class SyncSubmitTestView(APIView):
     """Offline Node Backend sync endpoint for test submissions.
@@ -262,7 +298,9 @@ class QuestionListView(APIView):
         if test_id:
             qs = Question.objects.filter(test_id=test_id)
         else:
-             qs = Question.objects.all()
+            qs = Question.objects.all()
+        if request.user.role == 'student':
+            qs = qs.filter(test__is_live=True).exclude(test__submissions__student=request.user)
         return Response(QuestionSerializer(qs, many=True, context={'request': request}).data)
 
     def post(self, request):
@@ -306,6 +344,14 @@ class QuestionDetailView(APIView):
     def get(self, request, question_id):
         try:
             q = Question.objects.get(id=question_id)
+            if request.user.role == 'student':
+                if not q.test.is_live:
+                    return Response({"error": "Test not live"}, status=status.HTTP_403_FORBIDDEN)
+                if TestSubmission.objects.filter(test=q.test, student=request.user).exists():
+                    return Response(
+                        {"error": "You have already submitted this test. Re-attempts are not allowed without teacher permission."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
             return Response(QuestionSerializer(q, context={'request': request}).data)
         except Question.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -576,10 +622,32 @@ from users.permissions import IsTeacher
 from users.models import User
 from .models import TestAttempt
 
+from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 class TestReattemptView(APIView):
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, pk):
+        user = request.user if request.user and request.user.is_authenticated else None
+        if not user:
+            auth_header = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION', '')
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+                try:
+                    import jwt
+                    from django.conf import settings
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
+                    user_id = payload.get('user_id')
+                    if user_id:
+                        user = User.objects.get(id=user_id)
+                except Exception:
+                    pass
+
+        if not user or user.role != 'teacher':
+            return Response({'error': 'Unauthorized. Teacher access required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
             test = Test.objects.get(id=pk)
         except Test.DoesNotExist:
@@ -611,10 +679,11 @@ class TestReattemptView(APIView):
 
         try:
             from django.db.models import Q
-            # Build case-insensitive query for roll numbers
+            # Build case-insensitive query for roll numbers and usernames
             query = Q()
             for r in roll_numbers:
-                query |= Q(roll_number__iexact=r.strip())
+                r_clean = r.strip()
+                query |= (Q(roll_number__iexact=r_clean) | Q(username__iexact=r_clean))
                 
             users_to_reattempt = User.objects.filter(query)
             

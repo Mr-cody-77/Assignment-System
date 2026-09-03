@@ -53,8 +53,11 @@ const StudentDashboard = () => {
           setLiveTest(tests[0]);
         }
 
-        const submitted = subRes.status === 'fulfilled' ? (subRes.value.submitted_test_ids || []) : [];
-        setSubmittedTestIds(submitted.map(String));
+        const subData = subRes.status === 'fulfilled' ? subRes.value : {};
+        const submitted = (subData.submitted_test_ids || []).map(String);
+        const attempted = (subData.attempted_test_ids || []).map(String);
+        const blocked = Array.from(new Set([...submitted, ...attempted]));
+        setSubmittedTestIds(blocked);
 
         setAssignments(Array.isArray(asgn) ? asgn : []);
         setTaskCounts({
@@ -116,17 +119,17 @@ const StudentDashboard = () => {
                </div>
              ) : liveTest && submittedTestIds.includes(String(liveTest.id)) ? (
                <div className={styles.actionCard} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid #f59e0b' }}>
-                 <div className={styles.actionIcon} style={{ background: 'rgba(245,158,11,0.2)' }}>✅</div>
+                 <div className={styles.actionIcon} style={{ background: 'rgba(245,158,11,0.2)' }}>🔒</div>
                  <div>
-                   <div style={{ fontWeight: 700, fontSize: 16, color: '#f59e0b' }}>Already Submitted: {liveTest.name || liveTest.title}</div>
-                   <div style={{ fontSize: 13, color: 'var(--clr-text-2)', marginTop: 4 }}>You have already completed this test.</div>
+                   <div style={{ fontWeight: 700, fontSize: 16, color: '#f59e0b' }}>Test Completed / Attempted: {liveTest.name || liveTest.title}</div>
+                   <div style={{ fontSize: 13, color: 'var(--clr-text-2)', marginTop: 4 }}>You have already attempted or submitted this test. Re-attempts require teacher permission.</div>
                  </div>
                </div>
             ) : liveTest ? (
                <div className={styles.actionCard} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid var(--clr-success)' }} onClick={() => navigate('/student/start-exam')} role="button" tabIndex={0}>
                  <div className={styles.actionIcon} style={{ background: 'rgba(16,185,129,0.2)' }}>📝</div>
                  <div>
-                   <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--clr-success)' }}>Test Available: {liveTest.title}</div>
+                   <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--clr-success)' }}>Test Available: {liveTest.name || liveTest.title}</div>
                    <div style={{ fontSize: 13, color: 'var(--clr-text-2)', marginTop: 4 }}>
                      <button className="btn btn-success btn-sm">Enter Test</button>
                    </div>
