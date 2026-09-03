@@ -470,6 +470,8 @@ const TestQuestions = () => {
         // the backend logic handles overriding/processing them correctly.
         if (cachedCode) {
           try {
+            // Remove immediately to prevent concurrent loops from double-submitting
+            sessionStorage.removeItem(`code_cache_${q.id}`);
             await submitTask({
               roll_number: user.roll_number || user.username,
               question: buildSubmitQuestion(q),

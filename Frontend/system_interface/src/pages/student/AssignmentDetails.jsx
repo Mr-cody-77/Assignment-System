@@ -109,6 +109,7 @@ const AssignmentDetails = () => {
             const cachedLang = sessionStorage.getItem(`language_cache_${q.id}`) || 'python';
             if (cachedCode) {
               try {
+                sessionStorage.removeItem(`code_cache_${q.id}`);
                 await submitTask({
                   roll_number: user.roll_number || user.username,
                   question: buildSubmitQuestion(q),
