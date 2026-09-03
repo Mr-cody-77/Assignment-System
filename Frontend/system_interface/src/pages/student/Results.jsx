@@ -74,24 +74,24 @@ const Results = () => {
     tests.forEach(test => {
       let testTotal = 0;
       test.questions?.forEach(q => {
-        questionToTest[q.id] = test;
-        questionMaxMarks[q.id] = q.marks || 10;
+        questionToTest[String(q.id)] = test;
+        questionMaxMarks[String(q.id)] = q.marks || 10;
         testTotal += q.marks || 10;
       });
-      testMaxMarks[test.id] = testTotal;
+      testMaxMarks[String(test.id)] = testTotal;
     });
 
     const groupsMap = {};
     results.forEach(r => {
-      const test = questionToTest[r.question_id];
-      const key = test ? test.id : 'unassigned';
+      const test = questionToTest[String(r.question_id)];
+      const key = test ? String(test.id) : `q_${r.question_id}`;
       if (!groupsMap[key]) {
         groupsMap[key] = {
           id: key,
-          title: test ? test.name : 'Unassigned Questions',
-          subtitle: '',
+          title: test ? (test.name || test.title) : `Assignment (Question #${r.question_id})`,
+          subtitle: test ? `Test #${test.id}` : '',
           marks: 0,
-          max_marks: test ? testMaxMarks[test.id] : undefined,
+          max_marks: test ? testMaxMarks[String(test.id)] : undefined,
           questionsDone: new Set(),
           results: []
         };
@@ -99,26 +99,20 @@ const Results = () => {
       if (r.is_latest === undefined || r.is_latest) {
         groupsMap[key].marks += r.score || 0;
       }
-      groupsMap[key].questionsDone.add(r.question_id);
+      groupsMap[key].questionsDone.add(String(r.question_id));
       
-      const qMax = questionMaxMarks[r.question_id];
+      const qMax = questionMaxMarks[String(r.question_id)] || r.max_score || 10;
       groupsMap[key].results.push({
         ...r,
         max_score: qMax
       });
     });
 
-    // Filter out groups for tests that haven't been submitted
-    const normalizedSubmittedIds = new Set(submittedTestIds.map(String));
     return Object.values(groupsMap).map(g => ({
       ...g,
       questionsDone: g.questionsDone.size
-    })).filter(g => {
-      // Only show groups for submitted tests (or 'unassigned' if needed)
-      if (g.id === 'unassigned') return false; // hide unassigned entirely
-      return normalizedSubmittedIds.has(String(g.id));
-    }).sort((a, b) => b.marks - a.marks);
-  }, [results, tests, submittedTestIds]);
+    })).sort((a, b) => b.marks - a.marks);
+  }, [results, tests]);
 
   return (
     <div className="app-shell">

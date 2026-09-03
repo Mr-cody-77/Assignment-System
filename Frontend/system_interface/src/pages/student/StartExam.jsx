@@ -23,8 +23,8 @@ const StartExam = () => {
         ]);
 
         const tests = testsRes.status === 'fulfilled' && Array.isArray(testsRes.value) ? testsRes.value : [];
-        if (tests.length > 0) {
-          const currentTest = tests[0];
+        const currentTest = tests.find(t => t.is_live);
+        if (currentTest) {
           setTestName(currentTest.name || currentTest.title || 'the Test');
           const tid = String(currentTest.id);
           setTestId(tid);

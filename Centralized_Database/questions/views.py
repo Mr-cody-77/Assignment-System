@@ -74,7 +74,10 @@ class TestListView(APIView):
         if request.user.role == 'teacher':
             tests = Test.objects.all()
         else:
-            tests = Test.objects.filter(is_live=True)
+            from django.db.models import Q
+            tests = Test.objects.filter(
+                Q(is_live=True) | Q(attempts__student=request.user) | Q(submissions__student=request.user)
+            ).distinct()
         return Response(TestSerializer(tests, many=True, context={'request': request}).data)
 
 class TestDetailView(APIView):

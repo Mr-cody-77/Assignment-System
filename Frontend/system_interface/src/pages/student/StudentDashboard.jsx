@@ -47,11 +47,9 @@ const StudentDashboard = () => {
         const tasks = taskRes.status === 'fulfilled'
           ? taskRes.value.filter((t) => t.roll_number === user?.username)
           : [];
-        const tests = testRes.status === 'fulfilled' ? testRes.value : [];
-        
-        if (tests.length > 0) {
-          setLiveTest(tests[0]);
-        }
+        const tests = testRes.status === 'fulfilled' && Array.isArray(testRes.value) ? testRes.value : [];
+        const active = tests.find(t => t.is_live);
+        setLiveTest(active || null);
 
         const subData = subRes.status === 'fulfilled' ? subRes.value : {};
         const submitted = (subData.submitted_test_ids || []).map(String);

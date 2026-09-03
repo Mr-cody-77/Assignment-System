@@ -71,40 +71,19 @@ const StudentResults = () => {
   }, [fetchPlagiarismFlags]);
   // ─────────────────────────────────────────────────────────────────
 
-  // Filter results: only show results for students who have submitted the test
-  const submissionFilteredResults = useMemo(() => {
-    // Build a map: questionId -> testId
-    const questionToTestId = {};
-    tests.forEach(test => {
-      test.questions?.forEach(q => {
-        questionToTestId[String(q.id)] = test.id;
-      });
-    });
-
-    const submittedPairs = new Set(
-      testSubmissions.map(s => `${s.test_id}:${String(s.student__roll_number).toLowerCase()}`)
-    );
-
-    return results.filter(r => {
-      const testId = questionToTestId[String(r.question_id)];
-      if (!testId) return false; // no test found for this question
-      return submittedPairs.has(`${testId}:${String(r.roll_number).toLowerCase()}`);
-    });
-  }, [results, tests, testSubmissions]);
-
-  const testFilteredResults = selectedTestId
-    ? submissionFilteredResults.filter((r) => {
-        const test = tests.find(t => String(t.id) === selectedTestId);
-        if (!test) return false;
-        const testQuestionIds = test.questions?.map(q => String(q.id)) || [];
-        return testQuestionIds.includes(String(r.question_id));
-      })
-    : submissionFilteredResults;
+  // Filter results by selected test (if any)
+  const testFilteredResults = useMemo(() => {
+    if (!selectedTestId) return results;
+    const test = tests.find(t => String(t.id) === selectedTestId);
+    if (!test) return results;
+    const testQuestionIds = new Set(test.questions?.map(q => String(q.id)) || []);
+    return results.filter(r => testQuestionIds.has(String(r.question_id)));
+  }, [results, tests, selectedTestId]);
 
   const filteredResults = filterData(
     statusFilter ? testFilteredResults.filter((r) => r.status?.toLowerCase() === statusFilter) : testFilteredResults,
     search,
-    ['roll_number', 'student', 'question_id', 'status']
+    ['roll_number', 'student', 'student_name', 'question_id', 'status']
   );
 
   const accepted = results.filter((r) =>
@@ -120,21 +99,21 @@ const StudentResults = () => {
       const selectedTest = tests.find(t => String(t.id) === selectedTestId);
       if (selectedTest) {
         selectedTest.questions?.forEach(q => {
-          questionMaxMarks[q.id] = q.marks || 10;
+          questionMaxMarks[String(q.id)] = q.marks || 10;
           totalTestMarks += q.marks || 10;
         });
       }
     } else {
       tests.forEach(test => {
         test.questions?.forEach(q => {
-          questionMaxMarks[q.id] = q.marks || 10;
+          questionMaxMarks[String(q.id)] = q.marks || 10;
         });
       });
     }
 
     const groupsMap = {};
     filteredResults.forEach(r => {
-      const key = r.roll_number;
+      const key = r.roll_number || r.student;
       if (!groupsMap[key]) {
         groupsMap[key] = {
           id: key,
@@ -150,9 +129,9 @@ const StudentResults = () => {
       if (r.is_latest === undefined || r.is_latest) {
         groupsMap[key].marks += r.score || 0;
       }
-      groupsMap[key].questionsDone.add(r.question_id);
+      groupsMap[key].questionsDone.add(String(r.question_id));
       
-      const qMax = questionMaxMarks[r.question_id];
+      const qMax = questionMaxMarks[String(r.question_id)] || r.max_score || 10;
       groupsMap[key].results.push({
         ...r,
         max_score: qMax
