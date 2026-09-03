@@ -156,6 +156,13 @@ const AssignmentDetails = () => {
       localStorage.removeItem('exam_duration');
       localStorage.removeItem('exam_end_time');
       localStorage.removeItem('exam_test_id');
+      try {
+        Object.keys(sessionStorage).forEach((k) => {
+          if (k.startsWith('code_cache_') || k.startsWith('language_cache_')) {
+            sessionStorage.removeItem(k);
+          }
+        });
+      } catch {}
       navigate('/student');
     }
   };

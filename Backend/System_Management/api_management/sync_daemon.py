@@ -42,14 +42,12 @@ def run_sync_daemon():
                                 if 200 <= response.status < 300:
                                     success_res = True
                         except urllib.error.HTTPError as e:
-                            # 400 = Bad Request, 401/403 = Auth. Drop these.
-                            # 404 = Not Found, which usually means it hit the WRONG server port (Node instead of Central DB).
-                            # Do NOT drop on 404 or 500.
+                            # 400 = Bad Request, 401/403 = Auth/Forbidden (already submitted or invalid auth). Drop these.
                             if 400 <= e.code < 500 and e.code != 404:
                                 logger.error(f"Central DB rejected sync for task {pending.task_id} with client error {e.code}. Dropping from queue.")
                                 success_res = True # Drop it
                             else:
-                                logger.error(f"Server error {e.code} during sync attempt. Will retry later.")
+                                logger.error(f"Server error {e.code} during sync attempt for task {pending.task_id}. Will retry later.")
                         except Exception as e:
                             logger.warning(f"Network error during sync attempt: {e}")
                             
@@ -99,11 +97,10 @@ def run_sync_daemon():
                                     success_sub = True
                                     logger.info(f"Successfully synced test submission for test {sub.test_id} to Central DB.")
                         except urllib.error.HTTPError as e:
-                            # Only drop on 400 (truly bad data). Retry on 401/403 (token might work later
-                            # or roll_number fallback will be used on Central side) and 404/5xx.
-                            if e.code == 400:
-                                logger.error(f"Central DB rejected test submission for test {sub.test_id} with 400 Bad Request. Dropping from queue.")
-                                success_sub = True  # Drop it — the data itself is invalid
+                            # 400, 401, 403: Data invalid, auth expired, or already submitted. Drop to prevent endless loop.
+                            if 400 <= e.code < 500 and e.code != 404:
+                                logger.error(f"Central DB rejected test submission for test {sub.test_id} with client error {e.code}. Dropping from queue.")
+                                success_sub = True  # Drop it
                             else:
                                 logger.warning(f"HTTP {e.code} during test submission sync for test {sub.test_id}. Will retry later.")
                         except Exception as e:

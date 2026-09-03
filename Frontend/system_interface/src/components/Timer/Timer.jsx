@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './Timer.module.css';
 
 const Timer = ({ durationMinutes, onTimeUp }) => {
+  const hasFiredRef = useRef(false);
+
   const [secondsLeft, setSecondsLeft] = useState(() => {
     const stored = localStorage.getItem('exam_end_time');
     if (stored) {
       const remaining = Math.max(0, Math.floor((parseInt(stored, 10) - Date.now()) / 1000));
       return remaining;
     }
-    return durationMinutes * 60;
+    return (durationMinutes || 60) * 60;
   });
 
   useEffect(() => {
@@ -20,7 +22,10 @@ const Timer = ({ durationMinutes, onTimeUp }) => {
 
   useEffect(() => {
     if (secondsLeft <= 0) {
-      onTimeUp?.();
+      if (!hasFiredRef.current) {
+        hasFiredRef.current = true;
+        onTimeUp?.();
+      }
       return;
     }
 
@@ -29,8 +34,21 @@ const Timer = ({ durationMinutes, onTimeUp }) => {
       if (stored) {
         const remaining = Math.max(0, Math.floor((parseInt(stored, 10) - Date.now()) / 1000));
         setSecondsLeft(remaining);
+        if (remaining <= 0 && !hasFiredRef.current) {
+          hasFiredRef.current = true;
+          clearInterval(interval);
+          onTimeUp?.();
+        }
       } else {
-        setSecondsLeft((prev) => Math.max(0, prev - 1));
+        setSecondsLeft((prev) => {
+          const next = Math.max(0, prev - 1);
+          if (next <= 0 && !hasFiredRef.current) {
+            hasFiredRef.current = true;
+            clearInterval(interval);
+            onTimeUp?.();
+          }
+          return next;
+        });
       }
     }, 1000);
 

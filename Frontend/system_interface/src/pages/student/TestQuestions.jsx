@@ -414,12 +414,21 @@ const TestQuestions = () => {
     fetchTest();
   }, [examActive, navigate, addToast]);
 
-  /* Clear exam state from localStorage */
+  /* Clear exam state from localStorage & sessionStorage */
   const clearExamStorage = () => {
     localStorage.removeItem('exam_active');
     localStorage.removeItem('exam_duration');
     localStorage.removeItem('exam_end_time');
     localStorage.removeItem('exam_test_id');
+
+    // Clean up sessionStorage code caches
+    try {
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith('code_cache_') || k.startsWith('language_cache_')) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    } catch {}
   };
 
   const handleSubmitTest = async () => {
