@@ -30,18 +30,25 @@ function TestResultScreen({ test, results, onDone }) {
   const [expanded, setExpanded] = useState({});
   const navigate = useNavigate();
 
-  /* Map question_id (string) → result object */
+  /* Map question_id (string) → latest result object */
   const resultByQId = {};
-  results.forEach(r => { resultByQId[String(r.question_id)] = r; });
+  results.forEach(r => {
+    const qid = String(r.question_id);
+    const existing = resultByQId[qid];
+    if (!existing || r.is_latest || (!existing.is_latest && new Date(r.submitted_at) > new Date(existing.submitted_at))) {
+      resultByQId[qid] = r;
+    }
+  });
 
   /* Calculate totals */
   const questions = test.questions || [];
   const totalMaxMarks = questions.reduce((sum, q) => sum + (q.marks || 0), 0);
   const totalObtained = questions.reduce((sum, q) => {
     const r = resultByQId[String(q.id)];
-    return sum + (r ? (r.score || 0) : 0);
+    return sum + (r ? (Number(r.score) || 0) : 0);
   }, 0);
-  const pct = totalMaxMarks > 0 ? Math.round((totalObtained / totalMaxMarks) * 100) : 0;
+  const roundedObtained = Math.round(totalObtained * 100) / 100;
+  const pct = totalMaxMarks > 0 ? Math.round((roundedObtained / totalMaxMarks) * 100) : 0;
 
   const gradeColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
 

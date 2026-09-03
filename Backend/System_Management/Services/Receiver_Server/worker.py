@@ -293,9 +293,12 @@ def evaluate_task(task: dict) -> dict:
     elif any(s == 'wrong_answer' for s in statuses):
         final_status = 'wrong_answer'
 
+    if total_points > 0:
+        score = round((earned_points / total_points * max_score), 2)
+    elif test_cases:
+        score = round((passed_count / len(test_cases) * max_score), 2)
     else:
-        final_status = 'failed'
-    score = round((earned_points / total_points * max_score) if total_points else 0, 2)
+        score = 0.0
     total_execution_time = sum(
         tc['exec_time_ms']
         for tc in results

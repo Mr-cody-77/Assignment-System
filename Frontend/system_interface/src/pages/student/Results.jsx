@@ -92,26 +92,33 @@ const Results = () => {
           subtitle: test ? `Test #${test.id}` : '',
           marks: 0,
           max_marks: test ? testMaxMarks[String(test.id)] : undefined,
-          questionsDone: new Set(),
-          results: []
+          latestByQ: {},
+          allResults: []
         };
       }
-      if (r.is_latest === undefined || r.is_latest) {
-        groupsMap[key].marks += r.score || 0;
+
+      const qid = String(r.question_id);
+      const qMax = questionMaxMarks[qid] || r.max_score || 10;
+      const resultWithMax = { ...r, max_score: qMax };
+
+      groupsMap[key].allResults.push(resultWithMax);
+
+      const existingLatest = groupsMap[key].latestByQ[qid];
+      if (!existingLatest || r.is_latest || (!existingLatest.is_latest && new Date(r.submitted_at) > new Date(existingLatest.submitted_at))) {
+        groupsMap[key].latestByQ[qid] = resultWithMax;
       }
-      groupsMap[key].questionsDone.add(String(r.question_id));
-      
-      const qMax = questionMaxMarks[String(r.question_id)] || r.max_score || 10;
-      groupsMap[key].results.push({
-        ...r,
-        max_score: qMax
-      });
     });
 
-    return Object.values(groupsMap).map(g => ({
-      ...g,
-      questionsDone: g.questionsDone.size
-    })).sort((a, b) => b.marks - a.marks);
+    return Object.values(groupsMap).map(g => {
+      const distinctQuestions = Object.values(g.latestByQ);
+      const totalMarks = distinctQuestions.reduce((sum, item) => sum + (Number(item.score) || 0), 0);
+      return {
+        ...g,
+        marks: Math.round(totalMarks * 100) / 100,
+        questionsDone: distinctQuestions.length,
+        results: distinctQuestions.sort((a, b) => Number(a.question_id) - Number(b.question_id))
+      };
+    }).sort((a, b) => b.marks - a.marks);
   }, [results, tests]);
 
   return (
