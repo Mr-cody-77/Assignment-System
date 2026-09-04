@@ -33,12 +33,32 @@ def get_two_nodes(exclude: set | None = None) -> list[dict]:
 
     with runtime.lock:
 
-        candidates = [
-            node
-            for node in runtime.nodes.values()
-            if node.get("node_id") != runtime.node_id
-            and node.get("ip") not in exclude
-        ]
+        candidates = []
+        seen_machines = set()
+
+        for node in runtime.nodes.values():
+            n_id = node.get("node_id")
+            n_ip = node.get("ip")
+            n_port = int(node.get("port", 0))
+            n_host = node.get("hostname")
+
+            # Exclude local machine (both sender and receiver runtimes)
+            if n_id in (runtime.node_id, receiver_runtime.node_id):
+                continue
+            if n_ip in ("127.0.0.1", "localhost", runtime.ip, receiver_runtime.ip) and n_port in (int(runtime.port), int(receiver_runtime.port)):
+                continue
+            if n_host and n_host == runtime.hostname and n_port == int(runtime.port):
+                continue
+            if n_ip in exclude:
+                continue
+
+            # Deduplicate by machine (hostname:port or ip:port)
+            machine_key = f"{n_host or n_ip}:{n_port}"
+            if machine_key in seen_machines:
+                continue
+            seen_machines.add(machine_key)
+
+            candidates.append(node)
 
     if not candidates:
         return []

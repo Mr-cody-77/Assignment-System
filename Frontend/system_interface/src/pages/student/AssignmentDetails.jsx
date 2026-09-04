@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/useToast';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
-import CodeEditor from '../../components/CodeEditor/CodeEditor';
+import CodeEditor, { TEMPLATES } from '../../components/CodeEditor/CodeEditor';
 import TerminalPanel from '../../components/TerminalPanel/TerminalPanel';
 import Loader from '../../components/Loader/Loader';
 import { getAssignmentById } from '../../services/assignmentService';
@@ -14,13 +14,6 @@ import Timer from '../../components/Timer/Timer';
 import { submitTest, getTestById } from '../../services/testService';
 import { updateUserEmail } from '../../services/userService';
 import styles from './AssignmentDetails.module.css';
-
-const TEMPLATES = {
-  python: '# Write your Python solution here\n\ndef solution():\n    pass\n',
-  cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Read input from stdin (e.g., cin >> a >> b;)\n    // Write your C++ solution here\n    // Print output to stdout (e.g., cout << result << endl;)\n\n    return 0;\n}\n',
-  java: 'public class Solution {\n    public static void main(String[] args) {\n        // Write your Java solution here\n    }\n}\n',
-  javascript: '// Use readline() for stdin and console.log() for output\n\nfunction solution() {\n  const line = readline();\n  console.log(line);\n}\n',
-};
 
 const addPointsToCases = (cases = [], startIndex = 0, totalCases = 1) =>
   cases.map((testCase, index) => ({
@@ -55,13 +48,17 @@ const AssignmentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [code, setCode] = useState(() => {
-    const cached = sessionStorage.getItem(`code_cache_${id}`);
-    return cached || TEMPLATES.python;
-  });
   const [language, setLanguage] = useState(() => {
     const cached = sessionStorage.getItem(`language_cache_${id}`);
+    if (!cached) {
+      sessionStorage.setItem(`language_cache_${id}`, 'python');
+    }
     return cached || 'python';
+  });
+  const [code, setCode] = useState(() => {
+    const cachedLang = sessionStorage.getItem(`language_cache_${id}`) || 'python';
+    const cached = sessionStorage.getItem(`code_cache_${id}`);
+    return cached || TEMPLATES[cachedLang] || TEMPLATES.python;
   });
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [activeTab, setActiveTab] = useState('description');
@@ -186,10 +183,16 @@ const AssignmentDetails = () => {
     fetch();
   }, [id, examActive, navigate]);
 
-  // Sync the code editor when the question ID changes
+  // Sync language and code when the question ID changes
   useEffect(() => {
-    const cached = sessionStorage.getItem(`code_cache_${id}`);
-    setCode(cached || TEMPLATES[language] || TEMPLATES.python);
+    const cachedLang = sessionStorage.getItem(`language_cache_${id}`) || 'python';
+    if (!sessionStorage.getItem(`language_cache_${id}`)) {
+      sessionStorage.setItem(`language_cache_${id}`, 'python');
+    }
+    const cachedCode = sessionStorage.getItem(`code_cache_${id}`);
+
+    setLanguage(cachedLang);
+    setCode(cachedCode || TEMPLATES[cachedLang] || TEMPLATES.python);
     setTerminalResults(null);
     setSubmittedTaskId(null);
   }, [id]);
@@ -444,6 +447,7 @@ const AssignmentDetails = () => {
           <div className="editor-panel">
             <div className="editor-container">
               <CodeEditor
+                key={id}
                 value={code}
                 onChange={handleCodeChange}
                 language={language}

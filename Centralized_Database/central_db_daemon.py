@@ -59,7 +59,8 @@ def main():
                     # All checked, trigger email dispatch
                     logger.info(f"Submissions checked. Triggering Email Dispatch for {schedule.id}...")
                     schedule.emails_sent = True
-                    schedule.save(update_fields=['emails_sent'])
+                    schedule.is_active = False
+                    schedule.save(update_fields=['emails_sent', 'is_active'])
                     threading.Thread(target=trigger_email_daemon, args=(schedule.id,), daemon=True).start()
 
         except Exception as e:

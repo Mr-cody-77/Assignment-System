@@ -27,79 +27,142 @@ def fetch_node_load(ip: str, port: int) -> dict:
         )
 
 
-def handle_node_info() -> dict:
+def _get_local_addresses():
+    import socket
+    addrs = {"127.0.0.1", "localhost", "0.0.0.0"}
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            a = info[4][0]
+            if a and not a.startswith("127."):
+                addrs.add(a)
+    except Exception:
+        pass
+    return addrs
 
-    nodes_info = []
+
+def handle_node_info() -> dict:
+    from Services.Receiver_Server.runtime import runtime as receiver_runtime
+    from Services.Receiver_Server.load_checker import get_predicted_score
+
+    local_ips = _get_local_addresses()
+    if receiver_runtime.ip:
+        local_ips.add(receiver_runtime.ip)
+    if sender_runtime.ip:
+        local_ips.add(sender_runtime.ip)
+
+    # 1. Fetch gateway (self) metrics directly from local memory
+    gateway_info = {
+        "node_id": receiver_runtime.node_id,
+        "hostname": receiver_runtime.hostname,
+        "ip": receiver_runtime.ip,
+        "port": receiver_runtime.port,
+        "cpu_usage": receiver_runtime.cpu_usage,
+        "memory_usage": receiver_runtime.memory_usage,
+        "io_wait": receiver_runtime.io_wait,
+        "active_workers": receiver_runtime.active_workers,
+        "inflight_tasks": receiver_runtime.inflight_tasks,
+        "completed_tasks": receiver_runtime.completed_tasks,
+        "workers_limit": receiver_runtime.workers_limit,
+        "current_load_score": get_predicted_score(),
+        "is_gateway": True
+    }
 
     with sender_runtime.lock:
-
-        nodes = list(
-            sender_runtime.nodes.values()
-        )
-
+        raw_nodes = list(sender_runtime.nodes.values())
         database_server = (
             sender_runtime.database_server.copy()
             if sender_runtime.database_server
             else None
         )
 
-    # Fetch load only from execution nodes
-        
-    for node in nodes:
-
+    # 2. Try fetching the authoritative cluster node list from Central DB
+    cluster_nodes = None
+    if database_server and database_server.get("ip") and database_server.get("port"):
         try:
-
-            load_info = fetch_node_load(
-                node["ip"],
-                node["port"],
-            )
-
-            with sender_runtime.lock:
-
-                node_ref = sender_runtime.nodes.get(
-                    node["node_id"]
-                )
-
-                if node_ref:
-                    node_ref["failures"] = 0
-
-            nodes_info.append(load_info)
-
+            db_url = f"http://{database_server['ip']}:{database_server['port']}/api/nodes/"
+            with urllib.request.urlopen(db_url, timeout=2.5) as resp:
+                if resp.status == 200:
+                    payload = json.loads(resp.read().decode())
+                    if isinstance(payload.get("nodes"), list):
+                        cluster_nodes = payload["nodes"]
         except Exception:
+            cluster_nodes = None
 
-            with sender_runtime.lock:
+    nodes_info = []
+    seen_endpoints = set()
+    seen_ids = set()
 
-                node_ref = sender_runtime.nodes.get(
-                    node["node_id"]
-                )
+    # Always ensure gateway is registered first
+    gw_ep = (gateway_info["ip"], int(gateway_info["port"]))
+    seen_endpoints.add(gw_ep)
+    seen_ids.add(gateway_info["node_id"])
+    nodes_info.append(gateway_info)
 
-                if node_ref:
+    if cluster_nodes is not None:
+        # A. Authoritative list from Central DB
+        for n in cluster_nodes:
+            n_ip = n.get("ip")
+            n_port = int(n.get("port", 8000))
+            n_id = n.get("node_id")
 
-                    node_ref["failures"] += 1
+            if (n_ip, n_port) in seen_endpoints or n_id in seen_ids:
+                continue
+            if n_ip in local_ips and n_port in (int(receiver_runtime.port), int(sender_runtime.port)):
+                continue
 
-                    print(
-                        f"Node {node['node_id']} "
-                        f"failure count = "
-                        f"{node_ref['failures']}"
-                    )
+            n_copy = dict(n)
+            n_copy["is_gateway"] = False
+            seen_endpoints.add((n_ip, n_port))
+            if n_id:
+                seen_ids.add(n_id)
+            nodes_info.append(n_copy)
 
-                    if node_ref["failures"] >= 3:
+    else:
+        # B. Fallback to Zeroconf discovered nodes with strict deduplication
+        for node in raw_nodes:
+            n_ip = node.get("ip")
+            n_port = int(node.get("port", 0))
+            n_id = node.get("node_id")
+            n_host = (node.get("hostname") or "").strip().lower()
 
-                        sender_runtime.nodes.pop(
-                            node["node_id"],
-                            None,
-                        )
+            if (n_ip, n_port) in seen_endpoints or n_id in seen_ids:
+                continue
+            if n_ip in local_ips and n_port in (int(receiver_runtime.port), int(sender_runtime.port)):
+                continue
 
-                        print(
-                            f"Removing dead node "
-                            f"{node['node_id']}"
-                        )
+            try:
+                load_info = fetch_node_load(n_ip, n_port)
 
-            continue
+                with sender_runtime.lock:
+                    node_ref = sender_runtime.nodes.get(n_id)
+                    if node_ref:
+                        node_ref["failures"] = 0
 
-    # Database server metadata only
+                ret_id = load_info.get("node_id", n_id)
+                ret_ip = load_info.get("ip", n_ip)
+                ret_port = int(load_info.get("port", n_port))
+
+                if (ret_ip, ret_port) in seen_endpoints or ret_id in seen_ids:
+                    continue
+                if ret_ip in local_ips and ret_port in (int(receiver_runtime.port), int(sender_runtime.port)):
+                    continue
+
+                seen_endpoints.add((ret_ip, ret_port))
+                seen_ids.add(ret_id)
+                load_info["is_gateway"] = False
+                nodes_info.append(load_info)
+
+            except Exception:
+                with sender_runtime.lock:
+                    node_ref = sender_runtime.nodes.get(n_id)
+                    if node_ref:
+                        node_ref["failures"] = node_ref.get("failures", 0) + 1
+                        if node_ref["failures"] >= 3:
+                            sender_runtime.nodes.pop(n_id, None)
+                continue
+
+    # Database server metadata
     db_info = None
-# Database server metadata only
     if database_server:
         db_info = {
             "name": "Database Server",
@@ -107,49 +170,19 @@ def handle_node_info() -> dict:
             "port": database_server["port"],
         }
     else:
-        # MODIFIED: Provide a fallback object so React doesn't crash 
-        # while Zeroconf is still discovering the network.
         db_info = {
             "name": "Searching for Database...",
             "ip": "Pending...",
             "port": 8000,
         }
 
-    # Fetch gateway (self) metrics directly from memory to avoid deadlocks
-    try:
-        from Services.Receiver_Server.runtime import runtime as receiver_runtime
-        from Services.Receiver_Server.load_checker import get_predicted_score
-        
-        gateway_info = {
-            "node_id": receiver_runtime.node_id,
-            "hostname": receiver_runtime.hostname,
-            "ip": receiver_runtime.ip,
-            "port": receiver_runtime.port,
-            "cpu_usage": receiver_runtime.cpu_usage,
-            "memory_usage": receiver_runtime.memory_usage,
-            "io_wait": receiver_runtime.io_wait,
-            "active_workers": receiver_runtime.active_workers,
-            "inflight_tasks": receiver_runtime.inflight_tasks,
-            "completed_tasks": receiver_runtime.completed_tasks,
-            "workers_limit": receiver_runtime.workers_limit,
-            "current_load_score": get_predicted_score(),
-            "is_gateway": True
-        }
-        nodes_info.insert(0, gateway_info)
-    except Exception as e:
-        print(f"Failed to fetch gateway load: {e}")
-
     return {
-            "database_server": db_info,
-            
-            # --- NEW GATEWAY BLOCK ---
-            "gateway": {
-                "node_id": sender_runtime.node_id,
-                "hostname": sender_runtime.hostname,
-                "ip": sender_runtime.ip,
-                "port": sender_runtime.port,
-            },
-            # -------------------------
-            
-            "nodes": nodes_info,
-        }
+        "database_server": db_info,
+        "gateway": {
+            "node_id": sender_runtime.node_id,
+            "hostname": sender_runtime.hostname,
+            "ip": sender_runtime.ip,
+            "port": sender_runtime.port,
+        },
+        "nodes": nodes_info,
+    }

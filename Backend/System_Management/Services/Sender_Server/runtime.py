@@ -12,13 +12,16 @@ import uuid
 import time
 
 
+from Services.node_identity import get_persistent_node_id
+
+
 class Runtime:
     """Thread-safe shared runtime for Sender Server."""
 
     def __init__(self):
 
-        # Unique node identifier
-        self.node_id = f"Node-{uuid.uuid4().hex[:8]}"
+        # Unique persistent node identifier
+        self.node_id = get_persistent_node_id()
 
         # Filled by network.py
         self.ip = None

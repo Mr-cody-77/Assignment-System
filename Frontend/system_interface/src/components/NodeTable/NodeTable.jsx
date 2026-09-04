@@ -96,7 +96,7 @@ const NodeTable = ({ nodes = [], loading = false, onRefresh }) => {
               </thead>
               <tbody>
                 {items.map((node) => (
-                  <tr key={node.node_id}>
+                  <tr key={node.node_id ? `${node.node_id}_${node.ip}_${node.port}` : `${node.ip}:${node.port}`}>
                     <td><span className={styles.mono}>{node.node_id}</span></td>
                     <td>{node.hostname || '—'}</td>
                     <td><span className={styles.mono}>{node.ip}:{node.port}</span></td>

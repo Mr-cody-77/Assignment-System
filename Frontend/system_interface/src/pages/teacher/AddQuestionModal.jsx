@@ -12,6 +12,8 @@ const AddQuestionModal = ({ testId, onClose, onUpdate }) => {
   const [q, setQ] = useState({
     title: '',
     description: '',
+    input_format: '',
+    output_format: '',
     constraints: '',
     marks: 10,
     test_cases: [emptyTestCase()],
@@ -54,12 +56,16 @@ const AddQuestionModal = ({ testId, onClose, onUpdate }) => {
       const data = await generateTestCases({
         title: q.title,
         description: q.description,
+        input_format: q.input_format || '',
+        output_format: q.output_format || '',
         constraints: q.constraints || 'None provided'
       });
 
       if (data.test_cases || data.hidden_test_cases) {
         setQ((prev) => ({
           ...prev,
+          input_format: data.input_format || prev.input_format,
+          output_format: data.output_format || prev.output_format,
           test_cases: data.test_cases?.length ? data.test_cases.map(tc => ({ input: String(tc.input), output: String(tc.output) })) : prev.test_cases,
           hidden_test_cases: data.hidden_test_cases?.length ? data.hidden_test_cases.map(tc => ({ input: String(tc.input), output: String(tc.output) })) : prev.hidden_test_cases
         }));
@@ -88,6 +94,8 @@ const AddQuestionModal = ({ testId, onClose, onUpdate }) => {
         test_id: testId,
         title: q.title.trim(),
         description: q.description.trim(),
+        input_format: q.input_format?.trim() || '',
+        output_format: q.output_format?.trim() || '',
         constraints: q.constraints.trim(),
         marks: q.marks,
         test_cases: q.test_cases.filter(tc => tc.input.trim()),
@@ -134,6 +142,28 @@ const AddQuestionModal = ({ testId, onClose, onUpdate }) => {
               onChange={(e) => handleChange('description', e.target.value)}
               rows={4}
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Input Format</label>
+            <textarea
+              className="form-textarea"
+              value={q.input_format}
+              onChange={(e) => handleChange('input_format', e.target.value)}
+              placeholder="Describe how the input is formatted..."
+              rows={2}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Output Format</label>
+            <textarea
+              className="form-textarea"
+              value={q.output_format}
+              onChange={(e) => handleChange('output_format', e.target.value)}
+              placeholder="Describe what the program should print..."
+              rows={2}
             />
           </div>
 

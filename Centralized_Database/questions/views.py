@@ -388,6 +388,14 @@ class QuestionDetailView(APIView):
             q.title = data["title"]
         if "description" in data:
             q.description = data["description"]
+        if "input_format" in data:
+            q.input_format = data["input_format"]
+        if "output_format" in data:
+            q.output_format = data["output_format"]
+        if "constraints" in data:
+            q.constraints = data["constraints"]
+        if "examples" in data:
+            q.examples = data["examples"]
         if "marks" in data:
             q.marks = int(data["marks"])
         q.save()
@@ -458,6 +466,8 @@ class AITestCaseGeneratorView(APIView):
         title = data.get("title", "")
         description = data.get("description", "")
         constraints = data.get("constraints", "None provided")
+        existing_input_format = data.get("input_format", "").strip()
+        existing_output_format = data.get("output_format", "").strip()
 
         if not title or not description:
             return Response({"error": "Title and description required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -466,15 +476,21 @@ class AITestCaseGeneratorView(APIView):
         if not api_key:
             return Response({"error": "Gemini API Key not configured on the server"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        format_hints = ""
+        if existing_input_format:
+            format_hints += f"\nExisting Input Format: {existing_input_format}"
+        if existing_output_format:
+            format_hints += f"\nExisting Output Format: {existing_output_format}"
+
         prompt = f"""You are an expert competitive programming testcase generator and problem setter.
 Generate testcases, format descriptions, and a reference solution for this coding problem:
 Title: {title}
 Description: {description}
-Constraints: {constraints}
+Constraints: {constraints}{format_hints}
 
 Requirements:
-1. "input_format": A clear description of how input is structured (e.g., "First line contains N. Second line contains N space-separated integers."). This guides students on how stdin will be provided to their program.
-2. "output_format": A clear description of what the program should print (e.g., "Print a single integer — the maximum sum."). This guides students on what their program should output to stdout.
+1. "input_format": A clear, concise description of how input is structured (e.g., "First line contains an integer N. Next line contains N space-separated integers."). This guides students on how stdin will be provided to their program.{f" Refine or adhere to this provided format: {existing_input_format}" if existing_input_format else " You MUST provide a clear input format description."}
+2. "output_format": A clear, concise description of what the program should print (e.g., "Print a single integer — the maximum sum."). This guides students on what their program should output to stdout.{f" Refine or adhere to this provided format: {existing_output_format}" if existing_output_format else " You MUST provide a clear output format description."}
 3. "reference_solution": A complete, correct Python solution that reads from stdin and prints to stdout. This solution MUST be fully working and produce the correct output for every test case you generate. Do NOT use any external libraries. Use only standard Python.
 4. "test_cases": 2 to 5 visible test cases (examples) as objects with "input" and "output" string fields.
 5. "hidden_test_cases": 10 to 30 hidden test cases that rigorously test the solution, including:
@@ -501,9 +517,11 @@ Return ONLY valid JSON in this exact format:
         }
         
         models_to_try = [
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview",
             "gemini-3.6-flash",
             "gemini-3.5-flash",
-            "gemini-3.5-flash-lite"
+            "gemini-flash-latest"
         ]
         
         response = None
@@ -561,6 +579,12 @@ Return ONLY valid JSON in this exact format:
                 "discarded_count": total_discarded,
                 "validated": bool(ref_code),
             }
+
+            # Ensure input_format and output_format are non-empty strings
+            input_fmt = str(parsed_json.get("input_format") or "").strip()
+            output_fmt = str(parsed_json.get("output_format") or "").strip()
+            parsed_json["input_format"] = input_fmt or existing_input_format or "Standard console input as described in the problem."
+            parsed_json["output_format"] = output_fmt or existing_output_format or "Standard console output as described in the problem."
 
             # Remove reference_solution from response (no need to send to frontend)
             parsed_json.pop("reference_solution", None)
@@ -699,3 +723,89 @@ class TestReattemptView(APIView):
             return Response({'success': True, 'message': f'Re-attempt granted for {users_to_reattempt.count()} students.'})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLUSTER NODE REGISTRY (AUTHORITATIVE P2P DISCOVERY SOURCE)
+# ─────────────────────────────────────────────────────────────────────────────
+
+import threading
+import time
+
+class ClusterNodeRegistry:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._nodes = {}
+        self.NODE_TTL = 30.0
+
+    def update_heartbeat(self, data: dict) -> bool:
+        ip = str(data.get("ip", "")).strip()
+        try:
+            port = int(data.get("port", 8000))
+        except (ValueError, TypeError):
+            port = 8000
+        node_id = str(data.get("node_id", "")).strip()
+        hostname = str(data.get("hostname", "")).strip()
+
+        if not ip or not node_id:
+            return False
+
+        with self._lock:
+            endpoint = (ip, port)
+            for ep in list(self._nodes.keys()):
+                if ep != endpoint:
+                    v = self._nodes[ep]
+                    if v.get("node_id") == node_id or (
+                        hostname and v.get("hostname", "").lower() == hostname.lower() and ep[1] == port
+                    ):
+                        self._nodes.pop(ep, None)
+
+            self._nodes[endpoint] = {
+                "node_id": node_id,
+                "hostname": hostname,
+                "ip": ip,
+                "port": port,
+                "cpu_usage": float(data.get("cpu_usage", 0.0)),
+                "memory_usage": float(data.get("memory_usage", 0.0)),
+                "io_wait": float(data.get("io_wait", 0.0)),
+                "active_workers": int(data.get("active_workers", 0)),
+                "inflight_tasks": int(data.get("inflight_tasks", 0)),
+                "completed_tasks": int(data.get("completed_tasks", 0)),
+                "workers_limit": int(data.get("workers_limit", 5)),
+                "current_load_score": float(data.get("current_load_score", 0.0)),
+                "last_seen": time.time(),
+            }
+            return True
+
+    def get_active_nodes(self) -> list:
+        now = time.time()
+        with self._lock:
+            for ep in list(self._nodes.keys()):
+                if now - self._nodes[ep]["last_seen"] > self.NODE_TTL:
+                    self._nodes.pop(ep, None)
+
+            nodes_list = list(self._nodes.values())
+
+        nodes_list.sort(key=lambda n: (n["ip"], n["port"]))
+        return nodes_list
+
+cluster_registry = ClusterNodeRegistry()
+
+
+class NodeHeartbeatView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        ok = cluster_registry.update_heartbeat(request.data)
+        if ok:
+            return Response({"status": "ok"}, status=status.HTTP_200_OK)
+        return Response({"error": "Invalid heartbeat payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class NodeRegistryView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        nodes = cluster_registry.get_active_nodes()
+        return Response({"nodes": nodes, "total": len(nodes)}, status=status.HTTP_200_OK)
+

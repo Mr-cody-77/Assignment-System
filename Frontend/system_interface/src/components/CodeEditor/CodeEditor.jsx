@@ -16,7 +16,7 @@ const THEMES = [
   { value: 'hc-black', label: '🔲 High Contrast' },
 ];
 
-const TEMPLATES = {
+export const TEMPLATES = {
   python: '# Write your Python solution here\n\ndef solution():\n    pass\n',
   cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Read input from stdin (e.g., cin >> a >> b;)\n    // Write your C / C++ solution here\n    // Print output to stdout (e.g., cout << result << endl;)\n\n    return 0;\n}\n',
   java: 'public class Solution {\n    public static void main(String[] args) {\n        // Write your Java solution here\n    }\n}\n',

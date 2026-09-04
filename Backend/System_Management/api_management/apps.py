@@ -36,13 +36,16 @@ class ApiManagementConfig(AppConfig):
     def ready(self):
         # The RUN_MAIN check prevents Django's dev server from 
         # starting the discovery thread twice.
-        if os.environ.get('RUN_MAIN') == 'true':
             from Services.Sender_Server.network import start_discovery
             from api_management.sync_daemon import start_sync_daemon
+            from api_management.heartbeat_daemon import start_heartbeat_daemon
             
             # Start the Zeroconf broadcast loop!
             start_discovery()
             
+            # Start the cluster node heartbeat reporter to Central DB
+            start_heartbeat_daemon()
+
             # Start the browser heartbeat monitor daemon
             threading.Thread(target=monitor_heartbeat, daemon=True).start()
             

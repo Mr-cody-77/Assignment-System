@@ -47,11 +47,14 @@ def _get_local_ip() -> str:
     return '127.0.0.1'
 
 
+from Services.node_identity import get_persistent_node_id
+
+
 class RuntimeState:
     """Mutable execution state shared across all receiver threads."""
 
     def __init__(self):
-        self.node_id: str = f"Node-{uuid.uuid4().hex[:8]}"
+        self.node_id: str = get_persistent_node_id()
         self.hostname: str = socket.gethostname()
         self.ip: str = _get_local_ip()
         self.port = int(

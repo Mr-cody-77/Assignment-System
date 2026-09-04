@@ -143,10 +143,33 @@ const TeacherTestDetails = () => {
                             </button>
                         </div>
                     </div>
-                    <p style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)' }}>
+                    <p style={{ whiteSpace: 'pre-wrap', color: 'var(--clr-text-2)', marginBottom: 12 }}>
                         {q.description}
                     </p>
                     
+                    {(q.input_format || q.output_format || q.constraints) && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, fontSize: 13 }}>
+                        {q.input_format && (
+                          <div>
+                            <strong style={{ color: 'var(--clr-text-1)', display: 'block', marginBottom: 4 }}>📥 Input Format:</strong>
+                            <span style={{ color: 'var(--clr-text-2)', whiteSpace: 'pre-wrap' }}>{q.input_format}</span>
+                          </div>
+                        )}
+                        {q.output_format && (
+                          <div>
+                            <strong style={{ color: 'var(--clr-text-1)', display: 'block', marginBottom: 4 }}>📤 Output Format:</strong>
+                            <span style={{ color: 'var(--clr-text-2)', whiteSpace: 'pre-wrap' }}>{q.output_format}</span>
+                          </div>
+                        )}
+                        {q.constraints && (
+                          <div>
+                            <strong style={{ color: 'var(--clr-text-1)', display: 'block', marginBottom: 4 }}>⚙️ Constraints:</strong>
+                            <span style={{ color: 'var(--clr-text-2)', whiteSpace: 'pre-wrap' }}>{q.constraints}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div style={{ marginTop: 16, display: 'flex', gap: 16 }}>
                         <span style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>Visible Test Cases: {q.test_cases?.length || 0}</span>
                         <span style={{ fontSize: 13, color: 'var(--clr-text-2)' }}>Hidden Test Cases: {q.hidden_test_cases?.length || 0}</span>

@@ -55,6 +55,23 @@ def _get_local_ip():
     return "127.0.0.1"
 
 
+def _get_all_local_ips():
+    ips = {"127.0.0.1", "localhost", "0.0.0.0"}
+    try:
+        host = socket.gethostname()
+        for info in socket.getaddrinfo(host, None):
+            addr = info[4][0]
+            if addr and not addr.startswith("127."):
+                ips.add(addr)
+    except Exception:
+        pass
+    if runtime.ip:
+        ips.add(runtime.ip)
+    if receiver_runtime.ip:
+        ips.add(receiver_runtime.ip)
+    return ips
+
+
 class NodeListener:
     def add_service(self, zc, service_type, name):
         info = zc.get_service_info(service_type, name)
@@ -63,7 +80,7 @@ class NodeListener:
             return
 
         ip = socket.inet_ntoa(info.addresses[0])
-        port = info.port
+        port = int(info.port)
 
         props = {
             (k.decode() if isinstance(k, bytes) else k):
@@ -82,13 +99,11 @@ class NodeListener:
                 "port": port,
                 "last_seen": time.time(),
             }
-            # MODIFIED HERE: Update BOTH runtimes simultaneously
             runtime.database_server = db_info
             receiver_runtime.database_server = db_info
 
             logger.info(f"Database discovered @ {ip}:{port}")
 
-            # Dynamically update both runtime local IPs using the DB connection
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.settimeout(0.3)
@@ -106,14 +121,40 @@ class NodeListener:
         # -------------------------
         # Execution Node
         # -------------------------
-        node_id = props.get("node_id", name)
+        # Parse canonical node_id from props, or extract from service name if missing
+        node_id = props.get("node_id")
+        if not node_id:
+            clean_name = name.split(".")[0]
+            node_id = clean_name.rsplit("_", 1)[0] if "_" in clean_name else clean_name
+
+        local_ips = _get_all_local_ips()
+        hostname = props.get("hostname", "")
+
+        # Strict check: Never add local machine to remote peer nodes
+        is_self = (
+            node_id in (runtime.node_id, receiver_runtime.node_id)
+            or (ip in local_ips and port in (int(runtime.port), int(receiver_runtime.port)))
+            or (hostname and hostname.lower() == runtime.hostname.lower() and port == int(runtime.port))
+        )
+        if is_self:
+            return
 
         with runtime.lock:
+            # Evict any existing entry for the same machine endpoint (IP:port), same hostname:port, or same node_id
+            stale_keys = [
+                k for k, v in runtime.nodes.items()
+                if k == node_id
+                or (v.get("ip") == ip and int(v.get("port", 0)) == port)
+                or (hostname and v.get("hostname") and v.get("hostname").lower() == hostname.lower() and int(v.get("port", 0)) == port)
+            ]
+            for k in stale_keys:
+                runtime.nodes.pop(k, None)
+
             runtime.nodes[node_id] = {
                 "node_id": node_id,
                 "ip": ip,
                 "port": port,
-                "hostname": props.get("hostname", ""),
+                "hostname": hostname,
                 "load": float(props.get("load", 0)),
                 "last_seen": time.time(),
                 "failures": 0,
@@ -126,15 +167,17 @@ class NodeListener:
             if runtime.database_server:
                 logger.warning("Database server left network")
                 runtime.database_server = None
-                # MODIFIED HERE: Clear Receiver runtime too
                 receiver_runtime.database_server = None
             return
+
+        clean_name = name.split(".")[0]
+        target_id = clean_name.rsplit("_", 1)[0] if "_" in clean_name else clean_name
 
         with runtime.lock:
             to_remove = [
                 node_id
                 for node_id in runtime.nodes
-                if name.startswith(node_id) or node_id in name
+                if node_id == target_id or name.startswith(node_id) or node_id in name
             ]
 
             for node_id in to_remove:

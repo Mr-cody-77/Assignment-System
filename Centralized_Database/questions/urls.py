@@ -2,10 +2,15 @@ from django.urls import path
 from .views import (
     CreateTestView, TestListView, TestDetailView, TestToggleLiveView, ActiveTestConfigView,
     StartTestView, SubmitTestView, SyncSubmitTestView, QuestionListView, QuestionDetailView, AITestCaseGeneratorView,
-    LockdownScheduleView, TestReattemptView
+    LockdownScheduleView, TestReattemptView,
+    NodeRegistryView, NodeHeartbeatView
 )
 
 urlpatterns = [
+    # Node Registry endpoints
+    path('nodes/', NodeRegistryView.as_view(), name='node-registry'),
+    path('nodes/heartbeat/', NodeHeartbeatView.as_view(), name='node-heartbeat'),
+
     # Test endpoints
     path('tests/', TestListView.as_view(), name='test-list'),
     path('tests/create/', CreateTestView.as_view(), name='test-create'),

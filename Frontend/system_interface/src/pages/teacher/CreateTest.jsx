@@ -70,6 +70,8 @@ const CreateTest = () => {
       const data = await generateTestCases({
         title: q.title,
         description: q.description,
+        input_format: q.input_format || '',
+        output_format: q.output_format || '',
         constraints: q.constraints || 'None provided'
       });
 
