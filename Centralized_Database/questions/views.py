@@ -743,13 +743,13 @@ class ClusterNodeRegistry:
     def update_heartbeat(self, data: dict) -> bool:
         ip = str(data.get("ip", "")).strip()
         try:
-            port = int(data.get("port", 8000))
+            port = int(data.get("port") or 0)
         except (ValueError, TypeError):
-            port = 8000
+            port = 0
         node_id = str(data.get("node_id", "")).strip()
         hostname = str(data.get("hostname", "")).strip()
 
-        if not ip or not node_id:
+        if not ip or not node_id or not port:
             return False
 
         with self._lock:

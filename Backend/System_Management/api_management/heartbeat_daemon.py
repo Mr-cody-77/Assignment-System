@@ -23,7 +23,17 @@ def _send_heartbeat_loop():
     while True:
         try:
             db = sender_runtime.database_server or receiver_runtime.database_server
-            if db and db.get("ip") and db.get("port"):
+            db_ip = db.get("ip") if db else None
+            db_port = db.get("port") if db else None
+            # Guard: reject placeholder strings like "Pending..." that are truthy but not real IPs
+            _is_valid_host = (
+                db_ip
+                and isinstance(db_ip, str)
+                and db_ip not in ("Pending...", "Searching for Database...", "—", "", "None")
+                and not db_ip.startswith("Pending")
+                and db_port
+            )
+            if db and _is_valid_host:
                 db_ip = db["ip"]
                 db_port = db["port"]
                 url = f"http://{db_ip}:{db_port}/api/nodes/heartbeat/"

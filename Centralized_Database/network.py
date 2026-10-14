@@ -98,7 +98,7 @@ class DatabaseBroadcaster:
         self.zc.register_service(self.info)
 
         logger.info(
-            f"Database server advertised on LAN: {ip}:{SERVER_PORT}"
+            f"Database server advertised on LAN: {ip}:{port}"
         )
 
         # --- MODIFIED HERE: Start the background heartbeat thread ---

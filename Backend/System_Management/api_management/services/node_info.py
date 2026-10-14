@@ -116,9 +116,9 @@ def handle_node_info() -> dict:
         for n in cluster_nodes:
             n_ip = n.get("ip")
             try:
-                n_port = int(n.get("port", 8000))
+                n_port = int(n.get("port") or receiver_runtime.port)
             except (ValueError, TypeError):
-                n_port = 8000
+                n_port = int(receiver_runtime.port)
             n_id = n.get("node_id")
             n_host = _norm_host(n.get("hostname"))
 
@@ -142,9 +142,9 @@ def handle_node_info() -> dict:
     for node in raw_nodes:
         n_ip = node.get("ip")
         try:
-            n_port = int(node.get("port", 0))
+            n_port = int(node.get("port") or receiver_runtime.port)
         except (ValueError, TypeError):
-            n_port = 0
+            n_port = int(receiver_runtime.port)
         n_id = node.get("node_id")
         n_host = _norm_host(node.get("hostname"))
 
@@ -207,7 +207,7 @@ def handle_node_info() -> dict:
         db_info = {
             "name": "Searching for Database...",
             "ip": "Pending...",
-            "port": 8000,
+            "port": receiver_runtime.port,
         }
 
     return {
