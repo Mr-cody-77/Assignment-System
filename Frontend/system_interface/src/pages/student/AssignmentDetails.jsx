@@ -8,38 +8,21 @@ import CodeEditor, { TEMPLATES } from '../../components/CodeEditor/CodeEditor';
 import TerminalPanel from '../../components/TerminalPanel/TerminalPanel';
 import Loader from '../../components/Loader/Loader';
 import { getAssignmentById } from '../../services/assignmentService';
-import { submitTask, getTaskStatus } from '../../services/taskService';
+import { submitTask } from '../../services/taskService';
 import { runVisibleTestCases } from '../../services/localExecutionService';
 import Timer from '../../components/Timer/Timer';
-import { submitTest, getTestById } from '../../services/testService';
-import { updateUserEmail } from '../../services/userService';
+import { getTestById } from '../../services/testService';
 import styles from './AssignmentDetails.module.css';
 
-const addPointsToCases = (cases = [], startIndex = 0, totalCases = 1) =>
-  cases.map((testCase, index) => ({
-    ...testCase,
-    order: startIndex + index + 1,
-    points: Number(testCase.points) || Number((100 / totalCases).toFixed(4)),
-  }));
-
-const buildSubmitQuestion = (question) => {
-  const visible = Array.isArray(question?.test_cases) ? question.test_cases : [];
-  const hidden = Array.isArray(question?.hidden_test_cases) ? question.hidden_test_cases : [];
-  const totalCases = Math.max(visible.length + hidden.length, 1);
-
-  return {
-    ...question,
-    max_score: question.marks || question.max_score || 100,
-    time_limit_ms: question.time_limit_ms || 2000,
-    memory_limit_mb: question.memory_limit_mb || 256,
-    test_cases: addPointsToCases(visible, 0, totalCases),
-    hidden_test_cases: addPointsToCases(hidden, visible.length, totalCases),
-  };
-};
+// BUG-09 FIX: Import shared utilities — no more duplicated buildSubmitQuestion /
+// addPointsToCases logic that could diverge from TestQuestions.jsx
+import { buildSubmitQuestion } from '../../utils/examUtils';
+// BUG-07 FIX: Import shared submission hook — one canonical pipeline for both pages
+import useExamSubmit from '../../hooks/useExamSubmit';
 
 const AssignmentDetails = () => {
   const { id } = useParams();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -64,113 +47,45 @@ const AssignmentDetails = () => {
   const [activeTab, setActiveTab] = useState('description');
 
   const [running, setRunning] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [codeSubmitting, setCodeSubmitting] = useState(false);
   const [submittedTaskId, setSubmittedTaskId] = useState(null);
   const [terminalResults, setTerminalResults] = useState(null);
-
-  // Email modal state
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
-  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   const examActive = localStorage.getItem('exam_active') === 'true';
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
 
-  const handleExamEnd = () => {
-    setShowEmailModal(true);
-  };
-
-  const confirmExamEnd = async (e) => {
-    e.preventDefault();
-    if (!emailInput.trim()) {
-      addToast('Please enter a valid email address.', 'warning');
-      return;
-    }
-    
-    setEmailSubmitting(true);
-    try {
-      await updateUserEmail(emailInput);
-    } catch (err) {
-      addToast('Failed to save email, but submitting test...', 'warning');
-    }
-
-    const testId = localStorage.getItem('exam_test_id');
-    if (testId && user?.username) {
-      try {
-        const testData = await getTestById(testId);
-        if (testData && testData.questions) {
-          addToast('Auto-submitting your code solutions...', 'info');
-          
-          for (const q of testData.questions) {
-            const cachedCode = sessionStorage.getItem(`code_cache_${q.id}`);
-            const cachedLang = sessionStorage.getItem(`language_cache_${q.id}`) || 'python';
-            if (cachedCode) {
-              try {
-                sessionStorage.removeItem(`code_cache_${q.id}`);
-                await submitTask({
-                  roll_number: user.roll_number || user.username,
-                  question: buildSubmitQuestion(q),
-                  language: cachedLang,
-                  solution: cachedCode,
-                  email: localStorage.getItem('preferred_email') || user.email || '',
-                });
-              } catch (err) {
-                console.error(`Failed to auto-submit Q${q.id}:`, err);
-              }
-            }
-          }
-
-          // Poll for completion
-          try {
-            for (let i = 0; i < 10; i++) {
-              const statuses = await getTaskStatus();
-              const pending = statuses.filter(t => 
-                t.roll_number === user?.username && 
-                ['pending', 'queued', 'running'].includes(t.status?.toLowerCase())
-              );
-              if (pending.length === 0) break;
-              await new Promise(r => setTimeout(r, 1000));
-            }
-          } catch (err) {
-            console.error("Error polling task status:", err);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to auto-submit test tasks:', err);
-      }
-    }
-    
-    try {
-      // Submit the test formally
-      if (testId) {
-        await submitTest(testId, user?.roll_number || user?.username);
-        addToast('Test submitted successfully!', 'success');
-      }
-    } catch (err) {
-      console.error('Failed to submit test:', err);
-    } finally {
-      setEmailSubmitting(false);
-      localStorage.removeItem('exam_active');
-      localStorage.removeItem('exam_duration');
-      localStorage.removeItem('exam_end_time');
-      localStorage.removeItem('exam_test_id');
-      try {
-        Object.keys(sessionStorage).forEach((k) => {
-          if (k.startsWith('code_cache_') || k.startsWith('language_cache_')) {
-            sessionStorage.removeItem(k);
-          }
-        });
-      } catch {}
+  // BUG-07 FIX: Use the single shared exam submission hook.
+  // This replaces the duplicated confirmExamEnd pipeline that previously
+  // existed only in this component and behaved differently from TestQuestions:
+  //  - it never fetched results after submitting
+  //  - it used only user.username (not user.roll_number || user.username) when polling
+  //  - it always navigated to /student instead of showing a result screen
+  const {
+    submitting: examSubmitting,
+    emailInput,
+    setEmailInput,
+    emailSubmitting,
+    showEmailModal,
+    setShowEmailModal,
+    handleExamEnd,
+    confirmExamEnd,
+    handleTimeUp,
+  } = useExamSubmit({
+    user,
+    addToast,
+    onSuccess: ({ test, results }) => {
+      // After exam submit from the question panel, navigate to the student
+      // dashboard (the result screen lives in TestQuestions).
       navigate('/student');
-    }
-  };
+    },
+  });
 
   useEffect(() => {
     if (!examActive) {
       navigate('/student');
       return;
     }
-    const fetch = async () => {
+    const fetchQuestion = async () => {
       try {
         const data = await getAssignmentById(id);
         setQuestion(data);
@@ -180,7 +95,7 @@ const AssignmentDetails = () => {
         setLoading(false);
       }
     };
-    fetch();
+    fetchQuestion();
   }, [id, examActive, navigate]);
 
   // Sync language and code when the question ID changes
@@ -239,9 +154,10 @@ const AssignmentDetails = () => {
     }
   };
 
+  // Individual-question submit (the "⬆ Submit" button in the editor panel)
   const handleSubmit = async () => {
     if (!code.trim()) { addToast('Please write your solution first.', 'warning'); return; }
-    setSubmitting(true);
+    setCodeSubmitting(true);
     try {
       const res = await submitTask({
         roll_number: user.roll_number || user.username,
@@ -256,7 +172,7 @@ const AssignmentDetails = () => {
     } catch (err) {
       addToast(err?.response?.data?.message || 'Submission failed. Please try again.', 'error');
     } finally {
-      setSubmitting(false);
+      setCodeSubmitting(false);
     }
   };
 
@@ -293,26 +209,32 @@ const AssignmentDetails = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {examActive && (
                 <>
-                  <Timer durationMinutes={examDuration} onTimeUp={handleExamEnd} />
-                  <button className="btn btn-success btn-sm" onClick={handleExamEnd}>
-                    📤 Submit Test
+                  <Timer durationMinutes={examDuration} onTimeUp={handleTimeUp} />
+                  <button
+                    className="btn btn-success btn-sm"
+                    onClick={handleExamEnd}
+                    disabled={examSubmitting}
+                  >
+                    {examSubmitting ? (
+                      <><span className="spinner" style={{ width: 14, height: 14 }} /> Submitting…</>
+                    ) : '📤 Submit Test'}
                   </button>
                 </>
               )}
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={handleRun}
-                disabled={submitting || running}
+                disabled={codeSubmitting || running || examSubmitting}
               >
                 {running ? 'Running...' : 'Run'}
               </button>
               <button
                 className="btn btn-success btn-sm"
                 onClick={handleSubmit}
-                disabled={submitting || running}
+                disabled={codeSubmitting || running || examSubmitting}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                {submitting ? (
+                {codeSubmitting ? (
                   <><span className="spinner" style={{ width: 14, height: 14 }} /> Submitting…</>
                 ) : '⬆ Submit'}
               </button>
@@ -469,6 +391,7 @@ const AssignmentDetails = () => {
         </div>
       </div>
 
+      {/* Email confirmation modal — rendered by the shared hook state */}
       {showEmailModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -487,7 +410,7 @@ const AssignmentDetails = () => {
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--clr-text-2)', lineHeight: 1.5 }}>
               Where would you like to receive your final score and plagiarism check results?
             </p>
-            <form onSubmit={confirmExamEnd} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
+            <form onSubmit={(e) => confirmExamEnd(e, null)} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
               <div>
                 <input
                   type="email"

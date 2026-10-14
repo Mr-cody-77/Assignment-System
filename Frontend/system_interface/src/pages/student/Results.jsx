@@ -7,6 +7,7 @@ import StatCard from '../../components/common/StatCard';
 import usePolling from '../../hooks/usePolling';
 import { getMyResults } from '../../services/resultService';
 import { getAllTests, getSubmittedTests } from '../../services/testService';
+import { getTaskStatus } from '../../services/taskService';
 import { averageScorePercent, formatScore, normalizeScorePercent } from '../../utils/formatters';
 // ── PLAGIARISM DETECTION — new isolated imports ───────────────────────────────
 import { getStudentPlagiarismFlags, buildPlagiarismMap } from '../../services/plagiarismService';
@@ -27,13 +28,36 @@ const Results = () => {
   const fetchResults = useCallback(async () => {
     if (!user?.username) return;
     try {
+      // Item 2 Fallback: If offline or disconnected from Central DB, fallback to
+      // local preliminary score dashboard via getTaskStatus() on local node
       const [data, testsData, submittedData] = await Promise.all([
-        getMyResults(user.roll_number || user.username),
-        getAllTests(),
-        getSubmittedTests()
+        getMyResults(user.roll_number || user.username).catch(async () => {
+          try {
+            const statuses = await getTaskStatus();
+            return (statuses || [])
+              .filter((t) => (t.roll_number === user.roll_number || t.roll_number === user.username) && t.result)
+              .map((t) => ({
+                question_id: String(t.question_id),
+                score: Number(t.result.score) || 0,
+                passed_testcases: Number(t.result.passed_testcases) || 0,
+                total_testcases: Number(t.result.total_testcases) || 0,
+                execution_time: Number(t.result.execution_time) || 0,
+                status: t.result.status,
+                submitted_at: t.result.submitted_at || new Date(t.updated_at ? t.updated_at * 1000 : Date.now()).toISOString(),
+                is_preliminary: true,
+              }));
+          } catch {
+            return [];
+          }
+        }),
+        getAllTests().catch(() => []),
+        getSubmittedTests().catch(() => ({ submitted_test_ids: [] })),
       ]);
+
       setResults(Array.isArray(data) ? data : []);
-      setTests(Array.isArray(testsData) ? testsData : []);
+      if (Array.isArray(testsData) && testsData.length > 0) {
+        setTests(testsData);
+      }
       setSubmittedTestIds(submittedData?.submitted_test_ids || []);
     } catch {
       // silently fail on polling

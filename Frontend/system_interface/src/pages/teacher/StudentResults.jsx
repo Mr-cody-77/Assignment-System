@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/useToast';
 import Sidebar from '../../components/Sidebar/Sidebar';
@@ -6,6 +6,7 @@ import Header from '../../components/Header/Header';
 import GroupedResultTable from '../../components/ResultTable/GroupedResultTable';
 import StatCard from '../../components/common/StatCard';
 import SearchBar from '../../components/SearchBar/SearchBar';
+import usePolling from '../../hooks/usePolling';
 import { getResults, exportResultsExcel } from '../../services/resultService';
 import { getAllTests, getSubmittedTests } from '../../services/testService';
 import { exportToCSV, filterData } from '../../utils/helpers';
@@ -48,11 +49,8 @@ const StudentResults = () => {
     }
   }, [addToast]);
 
-  useEffect(() => { fetchResults(); }, [fetchResults]);
-  useEffect(() => {
-    const interval = setInterval(fetchResults, 30000);
-    return () => clearInterval(interval);
-  }, [fetchResults]);
+  // BUG-10 FIX: Eliminate duplicate useEffect mount fetch and interval double-fetch
+  usePolling(fetchResults, 30000, true);
 
   // ── PLAGIARISM DETECTION — separate fetch, independent of results fetch ────────
   const fetchPlagiarismFlags = useCallback(async () => {
@@ -64,11 +62,7 @@ const StudentResults = () => {
     }
   }, []);
 
-  useEffect(() => { fetchPlagiarismFlags(); }, [fetchPlagiarismFlags]);
-  useEffect(() => {
-    const interval = setInterval(fetchPlagiarismFlags, 60000); // refresh every 60s
-    return () => clearInterval(interval);
-  }, [fetchPlagiarismFlags]);
+  usePolling(fetchPlagiarismFlags, 60000, true);
   // ─────────────────────────────────────────────────────────────────
 
   // Filter results by selected test (if any)

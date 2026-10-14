@@ -289,7 +289,9 @@ class SyncSubmitTestView(APIView):
 
         if not TestSubmission.objects.filter(test=test, student=user).exists():
             TestSubmission.objects.create(test=test, student=user)
-            
+        # Ensure attempt record also exists, identical to normal SubmitTestView
+        TestAttempt.objects.get_or_create(test=test, student=user)
+
         return Response({'success': True, 'message': 'Test synced successfully.'})
 
 

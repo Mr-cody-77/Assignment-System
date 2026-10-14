@@ -6,11 +6,13 @@ import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
 import EmptyState from '../../components/common/EmptyState';
 import { SkeletonCard } from '../../components/Loader/SkeletonLoader';
-import { getTestById, submitTest } from '../../services/testService';
-import { submitTask, getTaskStatus } from '../../services/taskService';
-import { getMyResults } from '../../services/resultService';
+import { getTestById } from '../../services/testService';
 import Timer from '../../components/Timer/Timer';
 import styles from './Assignments.module.css';
+
+// BUG-09 FIX: shared utilities — removes the inline `normalize` duplicate
+// BUG-07 FIX: shared hook — removes the separate submission pipeline
+import useExamSubmit from '../../hooks/useExamSubmit';
 
 /* ─── Status display config ─────────────────────────────────────────────── */
 const STATUS_META = {
@@ -229,24 +231,15 @@ function TestResultScreen({ test, results, onDone }) {
                   {r ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
                       {/* Test Cases */}
-                      <div style={{
-                        background: 'var(--clr-surface)',
-                        border: '1px solid var(--clr-border)',
-                        borderRadius: 10,
-                        padding: '12px 16px',
-                      }}>
-                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Test Cases
-                        </div>
+                      <div style={{ background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 10, padding: '12px 16px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Test Cases</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: 22, fontWeight: 800, color: '#10b981' }}>{r.passed_testcases}</span>
                           <span style={{ color: 'var(--clr-text-3)', fontSize: 14 }}>/ {r.total_testcases}</span>
                         </div>
-                        {/* Mini progress bar */}
                         <div style={{ marginTop: 8, height: 4, borderRadius: 4, background: 'var(--clr-bg-3)', overflow: 'hidden' }}>
                           <div style={{
-                            height: '100%',
-                            borderRadius: 4,
+                            height: '100%', borderRadius: 4,
                             width: r.total_testcases > 0 ? `${(r.passed_testcases / r.total_testcases) * 100}%` : '0%',
                             background: r.passed_testcases === r.total_testcases ? '#10b981' : r.passed_testcases > 0 ? '#f59e0b' : '#ef4444',
                             transition: 'width 0.6s ease',
@@ -258,26 +251,15 @@ function TestResultScreen({ test, results, onDone }) {
                       </div>
 
                       {/* Score Earned */}
-                      <div style={{
-                        background: 'var(--clr-surface)',
-                        border: '1px solid var(--clr-border)',
-                        borderRadius: 10,
-                        padding: '12px 16px',
-                      }}>
-                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Marks Earned
-                        </div>
+                      <div style={{ background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 10, padding: '12px 16px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Marks Earned</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                          <span style={{ fontSize: 22, fontWeight: 800, color: earned >= maxMarks ? '#10b981' : earned > 0 ? '#f59e0b' : '#ef4444' }}>
-                            {earned}
-                          </span>
+                          <span style={{ fontSize: 22, fontWeight: 800, color: earned >= maxMarks ? '#10b981' : earned > 0 ? '#f59e0b' : '#ef4444' }}>{earned}</span>
                           <span style={{ color: 'var(--clr-text-3)', fontSize: 14 }}>/ {maxMarks}</span>
                         </div>
-                        {/* Mini progress bar */}
                         <div style={{ marginTop: 8, height: 4, borderRadius: 4, background: 'var(--clr-bg-3)', overflow: 'hidden' }}>
                           <div style={{
-                            height: '100%',
-                            borderRadius: 4,
+                            height: '100%', borderRadius: 4,
                             width: maxMarks > 0 ? `${(earned / maxMarks) * 100}%` : '0%',
                             background: earned >= maxMarks ? '#10b981' : earned > 0 ? '#f59e0b' : '#ef4444',
                             transition: 'width 0.6s ease',
@@ -286,33 +268,17 @@ function TestResultScreen({ test, results, onDone }) {
                       </div>
 
                       {/* Execution Time */}
-                      <div style={{
-                        background: 'var(--clr-surface)',
-                        border: '1px solid var(--clr-border)',
-                        borderRadius: 10,
-                        padding: '12px 16px',
-                      }}>
-                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Execution Time
-                        </div>
+                      <div style={{ background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 10, padding: '12px 16px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Execution Time</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--clr-accent-light)' }}>
                           {r.execution_time != null ? `${parseFloat(r.execution_time).toFixed(2)}s` : '—'}
                         </div>
                       </div>
 
                       {/* Status */}
-                      <div style={{
-                        background: 'var(--clr-surface)',
-                        border: '1px solid var(--clr-border)',
-                        borderRadius: 10,
-                        padding: '12px 16px',
-                      }}>
-                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Final Status
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: meta.color }}>
-                          {meta.label}
-                        </div>
+                      <div style={{ background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 10, padding: '12px 16px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Final Status</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: meta.color }}>{meta.label}</div>
                         <div style={{ fontSize: 11, color: 'var(--clr-text-3)', marginTop: 4 }}>
                           Submitted {new Date(r.submitted_at).toLocaleTimeString()}
                         </div>
@@ -352,10 +318,6 @@ const TestQuestions = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
-  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   /* Result screen state */
   const [testResult, setTestResult] = useState(null); // { test, results }
@@ -363,27 +325,34 @@ const TestQuestions = () => {
   const examActive = localStorage.getItem('exam_active') === 'true';
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
 
-  const handleExamEnd = () => {
-    setShowEmailModal(true);
-  };
-
-  const confirmExamEnd = async (e) => {
-    e.preventDefault();
-    if (!emailInput.trim()) {
-      addToast('Please enter a valid email address.', 'warning');
-      return;
-    }
-    setEmailSubmitting(true);
-    try {
-      const { updateUserEmail } = await import('../../services/userService');
-      await updateUserEmail(emailInput);
-    } catch (err) {
-      addToast('Failed to save email, but submitting test...', 'warning');
-    }
-    setEmailSubmitting(false);
-    setShowEmailModal(false);
-    await handleSubmitTest();
-  };
+  // BUG-07 FIX: Use the single shared exam submission hook.
+  // The previous separate pipeline here differed from AssignmentDetails in
+  // email source, poll filter (roll_number vs username), result fetching, and
+  // post-submit navigation.  Now both pages share one identical flow.
+  const {
+    submitting,
+    emailInput,
+    setEmailInput,
+    emailSubmitting,
+    showEmailModal,
+    setShowEmailModal,
+    handleExamEnd,
+    confirmExamEnd,
+    handleTimeUp,
+  } = useExamSubmit({
+    user,
+    addToast,
+    onSuccess: ({ test: submittedTest, results }) => {
+      // Show the inline result screen after submission
+      if (submittedTest) {
+        setTestResult({ test: submittedTest, results });
+      } else if (test) {
+        setTestResult({ test, results });
+      } else {
+        navigate('/student');
+      }
+    },
+  });
 
   useEffect(() => {
     if (!examActive) {
@@ -410,7 +379,10 @@ const TestQuestions = () => {
       } catch (err) {
         console.error('Failed to fetch test', err);
         if (err?.response?.status === 403) {
-          clearExamStorage();
+          localStorage.removeItem('exam_active');
+          localStorage.removeItem('exam_duration');
+          localStorage.removeItem('exam_end_time');
+          localStorage.removeItem('exam_test_id');
           addToast(err?.response?.data?.error || 'Access restricted. You cannot access this test.', 'error');
           navigate('/student');
         }
@@ -420,141 +392,6 @@ const TestQuestions = () => {
     };
     fetchTest();
   }, [examActive, navigate, addToast]);
-
-  /* Clear exam state from localStorage & sessionStorage */
-  const clearExamStorage = () => {
-    localStorage.removeItem('exam_active');
-    localStorage.removeItem('exam_duration');
-    localStorage.removeItem('exam_end_time');
-    localStorage.removeItem('exam_test_id');
-
-    // Clean up sessionStorage code caches
-    try {
-      Object.keys(sessionStorage).forEach((k) => {
-        if (k.startsWith('code_cache_') || k.startsWith('language_cache_')) {
-          sessionStorage.removeItem(k);
-        }
-      });
-    } catch {}
-  };
-
-  const handleSubmitTest = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-
-    const testId = localStorage.getItem('exam_test_id') || (test && test.id);
-
-    /* 0. Auto-submit any cached code that hasn't been evaluated yet */
-    if (test && test.questions && user?.username) {
-      const buildSubmitQuestion = (q) => {
-        const visible = Array.isArray(q?.test_cases) ? q.test_cases : [];
-        const hidden = Array.isArray(q?.hidden_test_cases) ? q.hidden_test_cases : [];
-        const totalCases = Math.max(visible.length + hidden.length, 1);
-        const normalize = (cases, startIdx) => cases.map((c, i) => ({
-          ...c, order: startIdx + i + 1, points: Number(c.points) || Number((100/totalCases).toFixed(4))
-        }));
-        return {
-          ...q,
-          max_score: q.marks || q.max_score || 100,
-          time_limit_ms: q.time_limit_ms || 2000,
-          memory_limit_mb: q.memory_limit_mb || 256,
-          test_cases: normalize(visible, 0),
-          hidden_test_cases: normalize(hidden, visible.length),
-        };
-      };
-
-      for (const q of test.questions) {
-        const cachedCode = sessionStorage.getItem(`code_cache_${q.id}`);
-        const cachedLang = sessionStorage.getItem(`language_cache_${q.id}`) || 'python';
-        // We will just submit the cached code for all questions, 
-        // the backend logic handles overriding/processing them correctly.
-        if (cachedCode) {
-          try {
-            // Remove immediately to prevent concurrent loops from double-submitting
-            sessionStorage.removeItem(`code_cache_${q.id}`);
-            await submitTask({
-              roll_number: user.roll_number || user.username,
-              question: buildSubmitQuestion(q),
-              language: cachedLang,
-              solution: cachedCode,
-              email: emailInput || localStorage.getItem('preferred_email') || user.email || '',
-            });
-          } catch (err) {
-            console.error(`Failed to auto-submit code for Q${q.id}:`, err);
-          }
-        }
-      }
-
-      // Poll until all auto-submitted tasks finish or timeout after 10s
-      try {
-        for (let i = 0; i < 10; i++) {
-          const statuses = await getTaskStatus();
-          const pending = statuses.filter(t => 
-            (t.roll_number === user?.roll_number || t.roll_number === user?.username) && 
-            ['pending', 'queued', 'running'].includes(t.status?.toLowerCase())
-          );
-          if (pending.length === 0) break;
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      } catch (err) {
-        console.error("Error polling task status:", err);
-      }
-    }
-
-    /* 1. Submit the test record */
-    try {
-      await submitTest(testId, user?.roll_number || user?.username);
-      addToast('Test submitted successfully!', 'success');
-    } catch (err) {
-      console.error('Failed to submit test:', err);
-      /* Non-blocking — still proceed to show results */
-    }
-
-    /* 3. Fetch per-question results from Centralized DB */
-    let results = [];
-    try {
-      if (user) {
-        results = await getMyResults(user.roll_number || user.username);
-        if (!Array.isArray(results)) results = [];
-      }
-    } catch (err) {
-      console.error('Failed to fetch results from Central DB, falling back to local task status', err);
-      try {
-        if (user?.username) {
-          const statuses = await getTaskStatus();
-          results = statuses
-            .filter(t => (t.roll_number === user.roll_number || t.roll_number === user.username) && t.result)
-            .map(t => ({
-              question_id: String(t.question_id),
-              score: Number(t.result.score) || 0,
-              passed_testcases: Number(t.result.passed_testcases) || 0,
-              total_testcases: Number(t.result.total_testcases) || 0,
-              execution_time: Number(t.result.execution_time) || 0,
-              status: t.result.status,
-              submitted_at: t.result.submitted_at || new Date(t.updated_at ? t.updated_at * 1000 : Date.now()).toISOString()
-            }));
-        }
-      } catch (fallbackErr) {
-        console.error('Failed to fetch local task status fallback:', fallbackErr);
-      }
-    }
-
-    /* 4. Clear exam state */
-    clearExamStorage();
-    setSubmitting(false);
-
-    /* 5. Show inline result screen */
-    if (test) {
-      setTestResult({ test, results });
-    } else {
-      navigate('/student');
-    }
-  };
-
-  /* ── Timer expired auto-submit ── */
-  const handleTimeUp = async () => {
-    await handleSubmitTest();
-  };
 
   /* ── Result screen: show instead of question list ── */
   if (testResult) {
@@ -591,7 +428,7 @@ const TestQuestions = () => {
           actions={
             examActive && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Timer durationMinutes={examDuration} onTimeUp={handleTimeUp} />
+                <Timer durationMinutes={examDuration} onTimeUp={() => handleTimeUp(test)} />
                 <button
                   className="btn btn-success btn-sm"
                   onClick={handleExamEnd}
@@ -668,6 +505,8 @@ const TestQuestions = () => {
           )}
         </div>
       </div>
+
+      {/* Email confirmation modal — rendered by the shared hook state */}
       {showEmailModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -686,7 +525,7 @@ const TestQuestions = () => {
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--clr-text-2)', lineHeight: 1.5 }}>
               Where would you like to receive your final score and plagiarism check results?
             </p>
-            <form onSubmit={confirmExamEnd} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
+            <form onSubmit={(e) => confirmExamEnd(e, test)} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
               <div>
                 <input
                   type="email"

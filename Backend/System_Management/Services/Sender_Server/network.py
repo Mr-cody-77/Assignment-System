@@ -174,10 +174,15 @@ class NodeListener:
         target_id = clean_name.rsplit("_", 1)[0] if "_" in clean_name else clean_name
 
         with runtime.lock:
+            # BUG-03 FIX: Use exact match only.
+            # The previous code used `name.startswith(node_id) or node_id in name`
+            # which caused any node whose ID happened to be a substring of the
+            # leaving node's service name to be incorrectly evicted.
+            # e.g. a node named "node" would be removed when "nodeA_8000" leaves.
             to_remove = [
                 node_id
                 for node_id in runtime.nodes
-                if node_id == target_id or name.startswith(node_id) or node_id in name
+                if node_id == target_id
             ]
 
             for node_id in to_remove:

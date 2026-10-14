@@ -44,24 +44,47 @@ def main():
             
             if schedule:
                 logger.info(f"Lockdown {schedule.id} has ended. Processing...")
-                
-                # Check if there are un-checked submissions
-                unchecked_exists = SubmittedSolution.objects.filter(plagiarism_checked=False).exists()
+
+                # BUG-04 FIX: Scope the unchecked-submissions query to only
+                # submissions that were created during THIS schedule's active
+                # window (start_time .. end_time).  LockdownSchedule has no
+                # direct FK to Question/Test, so we use the submission timestamp
+                # as the scope boundary.
+                #
+                # Previously this query was global (no filter at all), meaning
+                # a single leftover unchecked submission from ANY older test
+                # caused the daemon to loop forever, permanently blocking email
+                # dispatch for the current schedule.
+                unchecked_exists = SubmittedSolution.objects.filter(
+                    plagiarism_checked=False,
+                    submitted_at__gte=schedule.start_time,
+                    submitted_at__lte=schedule.end_time,
+                ).exists()
                 
                 if unchecked_exists:
-                    # Trigger LLM plagiarism daemon if not already triggered
+                    # Trigger LLM plagiarism daemon if not already triggered.
+                    # LLM detection only runs here — AFTER lockdown ends and the
+                    # internet is assumed to be back.
                     lock_key = f"llm_plagiarism_lock_{schedule.id}"
                     if not cache.get(lock_key):
-                        logger.info(f"Triggering LLM Plagiarism Check for {schedule.id}...")
+                        logger.info(f"Triggering LLM Plagiarism Check for schedule {schedule.id}...")
                         cache.set(lock_key, True, timeout=86400)
-                        threading.Thread(target=run_llm_plagiarism_check, args=(schedule.id,), daemon=True).start()
+                        threading.Thread(
+                            target=run_llm_plagiarism_check,
+                            args=(schedule.id,),
+                            daemon=True,
+                        ).start()
                 else:
-                    # All checked, trigger email dispatch
-                    logger.info(f"Submissions checked. Triggering Email Dispatch for {schedule.id}...")
+                    # All submissions for this schedule are checked; dispatch emails
+                    logger.info(f"All submissions checked. Triggering Email Dispatch for schedule {schedule.id}...")
                     schedule.emails_sent = True
                     schedule.is_active = False
                     schedule.save(update_fields=['emails_sent', 'is_active'])
-                    threading.Thread(target=trigger_email_daemon, args=(schedule.id,), daemon=True).start()
+                    threading.Thread(
+                        target=trigger_email_daemon,
+                        args=(schedule.id,),
+                        daemon=True,
+                    ).start()
 
         except Exception as e:
             logger.error(f"Error in polling loop: {e}")

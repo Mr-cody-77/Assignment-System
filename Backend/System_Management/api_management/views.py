@@ -499,54 +499,49 @@ class StopServersView(APIView):
 class ProxySubmitTestView(APIView):
     """
     Proxies test submissions to Central DB.
-    If Central DB is offline, queues the submission locally.
+    If Central DB is offline, queues the submission locally in SQLite safely.
     """
     def post(self, request):
         test_id = request.data.get('test_id')
         authorization = request.headers.get('Authorization', '')
         roll_number = request.data.get('roll_number', '')
-        
+
+        def _queue_offline():
+            from api_management.models import PendingTestSubmission, sqlite_lock
+            with sqlite_lock:
+                PendingTestSubmission.objects.update_or_create(
+                    test_id=str(test_id) if test_id else '',
+                    roll_number=roll_number,
+                    defaults={'authorization': authorization}
+                )
+
         db = runtime.database_server
         if not db:
-            from api_management.models import PendingTestSubmission
-            PendingTestSubmission.objects.create(
-                test_id=str(test_id) if test_id else '',
-                roll_number=roll_number,
-                authorization=authorization
-            )
+            _queue_offline()
             return Response({'success': True, 'message': 'Test submitted offline. Will sync on reconnect.'}, status=200)
-            
+
         url = f"http://{db['ip']}:{db['port']}/api/tests/submit/"
         try:
             req = urllib.request.Request(url, data=json.dumps(request.data).encode(), method='POST')
             req.add_header('Content-Type', 'application/json')
             if authorization:
                 req.add_header('Authorization', authorization)
-                
+
             with urllib.request.urlopen(req, timeout=5) as response:
                 return Response(json.loads(response.read().decode()), status=response.status)
         except urllib.error.HTTPError as e:
             if e.code == 404 or e.code >= 500:
-                # Might be hitting wrong server or Central DB is down
-                from api_management.models import PendingTestSubmission
-                PendingTestSubmission.objects.create(
-                    test_id=str(test_id) if test_id else '',
-                    roll_number=roll_number,
-                    authorization=authorization
-                )
+                # Central DB server error / wrong endpoint -> queue in offline storage
+                _queue_offline()
                 return Response({'success': True, 'message': f'Test submitted offline (Server error {e.code}). Will sync on reconnect.'}, status=200)
-            
+
             try:
                 return Response(json.loads(e.read().decode()), status=e.code)
-            except:
+            except Exception:
                 return Response({'error': str(e)}, status=e.code)
-        except Exception as e:
-            # Re-queue on network error
-            from api_management.models import PendingTestSubmission
-            PendingTestSubmission.objects.create(
-                test_id=str(test_id) if test_id else '',
-                roll_number=roll_number,
-                authorization=authorization
-            )
+        except Exception:
+            # Network error -> queue in offline storage
+            _queue_offline()
             return Response({'success': True, 'message': 'Test submitted offline (network error).'}, status=200)
+
 

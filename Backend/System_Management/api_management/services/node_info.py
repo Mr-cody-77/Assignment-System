@@ -5,22 +5,16 @@ from Services.Sender_Server.runtime import runtime as sender_runtime
 
 
 def fetch_node_load(ip: str, port: int) -> dict:
-
     url = f"http://{ip}:{port}/api/get-load/"
-
     try:
-
         with urllib.request.urlopen(
             url,
             timeout=3,
         ) as response:
-
             return json.loads(
                 response.read().decode()
             )
-
     except Exception as e:
-
         raise Exception(
             f"Failed to fetch load info "
             f"from {ip}:{port}: {str(e)}"
@@ -38,6 +32,15 @@ def _get_local_addresses():
     except Exception:
         pass
     return addrs
+
+
+LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "", "—"}
+
+def _norm_host(h):
+    if not h:
+        return None
+    val = str(h).strip().lower()
+    return "__loopback__" if val in LOOPBACK_HOSTS else val
 
 
 def handle_node_info() -> dict:
@@ -91,21 +94,37 @@ def handle_node_info() -> dict:
     nodes_info = []
     seen_endpoints = set()
     seen_ids = set()
+    seen_hosts = set()
 
     # Always ensure gateway is registered first
     gw_ep = (gateway_info["ip"], int(gateway_info["port"]))
+    gw_host = _norm_host(gateway_info["hostname"])
     seen_endpoints.add(gw_ep)
     seen_ids.add(gateway_info["node_id"])
+    if gw_host:
+        seen_hosts.add((gw_host, int(gateway_info["port"])))
     nodes_info.append(gateway_info)
 
-    if cluster_nodes is not None:
-        # A. Authoritative list from Central DB
+    # BUG-03 & Item 3 FIX:
+    # Merge Central DB cluster registry WITH Zeroconf discovered nodes.
+    # Previously, if cluster_nodes was non-empty, Zeroconf nodes were discarded,
+    # causing local peers not yet in Central DB to be invisible.
+    # Now both sources are unified with strict deduplication across IDs, endpoints, and hosts.
+
+    # A. First ingest Central DB nodes (if available)
+    if cluster_nodes:
         for n in cluster_nodes:
             n_ip = n.get("ip")
-            n_port = int(n.get("port", 8000))
+            try:
+                n_port = int(n.get("port", 8000))
+            except (ValueError, TypeError):
+                n_port = 8000
             n_id = n.get("node_id")
+            n_host = _norm_host(n.get("hostname"))
 
-            if (n_ip, n_port) in seen_endpoints or n_id in seen_ids:
+            if (n_ip, n_port) in seen_endpoints or (n_id and n_id in seen_ids):
+                continue
+            if n_host and (n_host, n_port) in seen_hosts:
                 continue
             if n_ip in local_ips and n_port in (int(receiver_runtime.port), int(sender_runtime.port)):
                 continue
@@ -115,51 +134,66 @@ def handle_node_info() -> dict:
             seen_endpoints.add((n_ip, n_port))
             if n_id:
                 seen_ids.add(n_id)
+            if n_host:
+                seen_hosts.add((n_host, n_port))
             nodes_info.append(n_copy)
 
-    else:
-        # B. Fallback to Zeroconf discovered nodes with strict deduplication
-        for node in raw_nodes:
-            n_ip = node.get("ip")
+    # B. Next ingest Zeroconf discovered nodes (fills in any nodes not in Central DB)
+    for node in raw_nodes:
+        n_ip = node.get("ip")
+        try:
             n_port = int(node.get("port", 0))
-            n_id = node.get("node_id")
-            n_host = (node.get("hostname") or "").strip().lower()
+        except (ValueError, TypeError):
+            n_port = 0
+        n_id = node.get("node_id")
+        n_host = _norm_host(node.get("hostname"))
 
-            if (n_ip, n_port) in seen_endpoints or n_id in seen_ids:
-                continue
-            if n_ip in local_ips and n_port in (int(receiver_runtime.port), int(sender_runtime.port)):
-                continue
+        if (n_ip, n_port) in seen_endpoints or (n_id and n_id in seen_ids):
+            continue
+        if n_host and (n_host, n_port) in seen_hosts:
+            continue
+        if n_ip in local_ips and n_port in (int(receiver_runtime.port), int(sender_runtime.port)):
+            continue
 
+        try:
+            load_info = fetch_node_load(n_ip, n_port)
+
+            with sender_runtime.lock:
+                node_ref = sender_runtime.nodes.get(n_id)
+                if node_ref:
+                    node_ref["failures"] = 0
+
+            ret_id = load_info.get("node_id", n_id)
+            ret_ip = load_info.get("ip", n_ip)
             try:
-                load_info = fetch_node_load(n_ip, n_port)
-
-                with sender_runtime.lock:
-                    node_ref = sender_runtime.nodes.get(n_id)
-                    if node_ref:
-                        node_ref["failures"] = 0
-
-                ret_id = load_info.get("node_id", n_id)
-                ret_ip = load_info.get("ip", n_ip)
                 ret_port = int(load_info.get("port", n_port))
+            except (ValueError, TypeError):
+                ret_port = n_port
+            ret_host = _norm_host(load_info.get("hostname", node.get("hostname")))
 
-                if (ret_ip, ret_port) in seen_endpoints or ret_id in seen_ids:
-                    continue
-                if ret_ip in local_ips and ret_port in (int(receiver_runtime.port), int(sender_runtime.port)):
-                    continue
-
-                seen_endpoints.add((ret_ip, ret_port))
-                seen_ids.add(ret_id)
-                load_info["is_gateway"] = False
-                nodes_info.append(load_info)
-
-            except Exception:
-                with sender_runtime.lock:
-                    node_ref = sender_runtime.nodes.get(n_id)
-                    if node_ref:
-                        node_ref["failures"] = node_ref.get("failures", 0) + 1
-                        if node_ref["failures"] >= 3:
-                            sender_runtime.nodes.pop(n_id, None)
+            if (ret_ip, ret_port) in seen_endpoints or (ret_id and ret_id in seen_ids):
                 continue
+            if ret_host and (ret_host, ret_port) in seen_hosts:
+                continue
+            if ret_ip in local_ips and ret_port in (int(receiver_runtime.port), int(sender_runtime.port)):
+                continue
+
+            seen_endpoints.add((ret_ip, ret_port))
+            if ret_id:
+                seen_ids.add(ret_id)
+            if ret_host:
+                seen_hosts.add((ret_host, ret_port))
+            load_info["is_gateway"] = False
+            nodes_info.append(load_info)
+
+        except Exception:
+            with sender_runtime.lock:
+                node_ref = sender_runtime.nodes.get(n_id)
+                if node_ref:
+                    node_ref["failures"] = node_ref.get("failures", 0) + 1
+                    if node_ref["failures"] >= 3:
+                        sender_runtime.nodes.pop(n_id, None)
+            continue
 
     # Database server metadata
     db_info = None

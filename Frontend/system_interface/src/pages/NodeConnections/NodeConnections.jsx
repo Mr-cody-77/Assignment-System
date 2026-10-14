@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NodeTable from '../../components/NodeTable/NodeTable';
 import { getNodeInfo } from '../../services/nodeService';
+import usePolling from '../../hooks/usePolling';
 import { formatDate } from '../../utils/formatters';
 import styles from './NodeConnections.module.css';
 
@@ -28,11 +29,8 @@ const NodeConnections = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  // BUG-10 FIX: Standardize with usePolling hook
+  usePolling(fetchData, REFRESH_INTERVAL, true);
 
   return (
     <div className={styles.page}>

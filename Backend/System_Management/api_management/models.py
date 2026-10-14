@@ -1,4 +1,8 @@
+import threading
 from django.db import models
+
+# Shared lock for SQLite operations across threads to prevent "database is locked" errors
+sqlite_lock = threading.Lock()
 
 class CachedQuestion(models.Model):
     question_id = models.CharField(max_length=255, unique=True)
