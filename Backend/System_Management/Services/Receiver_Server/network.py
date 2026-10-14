@@ -52,10 +52,21 @@ class DatabaseListener:
     def add_service(self, zc, service_type, name):
         info = zc.get_service_info(service_type, name)
 
-        if not info or not info.addresses:
+        ip = None
+        if hasattr(info, "parsed_addresses"):
+            ipv4_candidates = [a for a in info.parsed_addresses() if "." in a]
+            if ipv4_candidates:
+                ip = ipv4_candidates[0]
+            elif info.parsed_addresses():
+                ip = info.parsed_addresses()[0]
+        if not ip and info.addresses:
+            try:
+                ip = socket.inet_ntoa(info.addresses[0])
+            except Exception:
+                return
+        if not ip:
             return
 
-        ip = socket.inet_ntoa(info.addresses[0])
         port = info.port
 
         props = {

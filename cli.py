@@ -82,7 +82,8 @@ def main():
                 cwd=ASSIGNMENT_NODE_DIR,
                 name="Headless Node",
                 env_vars={
-                    "NODE_PORT": str(args.port)
+                    "NODE_PORT": str(args.port),
+                    "WORKER_ONLY": "true"
                 } 
             )
 
@@ -100,6 +101,7 @@ def main():
                 [python_exe, "central_db_daemon.py"],
                 cwd=DB_SERVER_DIR,
                 name="Central DB Background Daemon",
+                env_vars={"SERVER_PORT": str(args.port)}
             )
 
         if args.assignment:

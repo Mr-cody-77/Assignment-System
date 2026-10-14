@@ -38,8 +38,8 @@ export async function discoverServers(retries = MAX_RETRIES) {
         
         console.warn('Database server is pending discovery. Proceeding in offline mode.');
         return {
-          centralURL: `http://localhost:${NODE_PORT}`, // Fallback for offline mode
-          backendURL: `http://localhost:${NODE_PORT}`, // Crucial: Use localhost because LAN IP drops when WiFi drops
+          centralURL: NODE_URL, // Fallback to current node
+          backendURL: NODE_URL,
           nodeInfo: data,
         };
       }

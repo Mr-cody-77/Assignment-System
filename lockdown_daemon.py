@@ -111,9 +111,23 @@ try:
         def add_service(self, zc, type_, name):
             global discovered_db_url
             info = zc.get_service_info(type_, name)
-            if info and info.addresses:
-                ip = socket.inet_ntoa(info.addresses[0])
-                port = info.port
+            if not info:
+                return
+            ip = None
+            if hasattr(info, "parsed_addresses"):
+                ipv4_candidates = [a for a in info.parsed_addresses() if "." in a]
+                if ipv4_candidates:
+                    ip = ipv4_candidates[0]
+                elif info.parsed_addresses():
+                    ip = info.parsed_addresses()[0]
+            if not ip and info.addresses:
+                try:
+                    ip = socket.inet_ntoa(info.addresses[0])
+                except Exception:
+                    return
+            if not ip:
+                return
+            port = info.port
                 props = {
                     (k.decode() if isinstance(k, bytes) else k):
                     (v.decode() if isinstance(v, bytes) else v)

@@ -34,20 +34,29 @@ class ApiManagementConfig(AppConfig):
     name = 'api_management'
 
     def ready(self):
+        import sys
         # The RUN_MAIN check prevents Django's dev server from 
-        # starting the discovery thread twice.
-            from Services.Sender_Server.network import start_discovery
-            from api_management.sync_daemon import start_sync_daemon
-            from api_management.heartbeat_daemon import start_heartbeat_daemon
-            
-            # Start the Zeroconf broadcast loop!
-            start_discovery()
-            
-            # Start the cluster node heartbeat reporter to Central DB
-            start_heartbeat_daemon()
+        # starting the discovery thread and heartbeat monitor twice (or in the reloader parent).
+        is_runserver = 'runserver' in sys.argv
+        if is_runserver and os.environ.get('RUN_MAIN') != 'true':
+            return
 
-            # Start the browser heartbeat monitor daemon
+        if not is_runserver and not os.environ.get('START_NODE_DISCOVERY'):
+            return
+
+        from Services.Sender_Server.network import start_discovery
+        from api_management.sync_daemon import start_sync_daemon
+        from api_management.heartbeat_daemon import start_heartbeat_daemon
+        
+        # Start the Zeroconf broadcast loop!
+        start_discovery()
+        
+        # Start the cluster node heartbeat reporter to Central DB
+        start_heartbeat_daemon()
+
+        # Start the browser heartbeat monitor daemon (only if not in headless / worker-only mode)
+        if os.environ.get("WORKER_ONLY") != "true":
             threading.Thread(target=monitor_heartbeat, daemon=True).start()
-            
-            # Start the offline fallback sync daemon
-            start_sync_daemon()
+        
+        # Start the offline fallback sync daemon
+        start_sync_daemon()

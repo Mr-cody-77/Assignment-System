@@ -59,6 +59,7 @@ class DatabaseBroadcaster:
     def __init__(self):
         self.zc = None
         self.info = None
+        self._started = False
 
     # --- MODIFIED HERE: Added re-announce loop ---
     def _re_announce_loop(self):
@@ -72,6 +73,10 @@ class DatabaseBroadcaster:
     # ---------------------------------------------
 
     def start(self):
+        if self._started:
+            return
+        self._started = True
+
         ip = get_local_ip()
 
         logger.info(f"Database Server IP: {ip}")
