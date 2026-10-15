@@ -128,14 +128,14 @@ try:
             if not ip:
                 return
             port = info.port
-                props = {
-                    (k.decode() if isinstance(k, bytes) else k):
-                    (v.decode() if isinstance(v, bytes) else v)
-                    for k, v in (info.properties or {}).items()
-                }
-                if props.get("role", "") == "database":
-                    discovered_db_url = f"http://{ip}:{port}/api/schedule/"
-                    logging.info(f"Discovered DB server via Zeroconf at {ip}:{port}")
+            props = {
+                (k.decode() if isinstance(k, bytes) else k):
+                (v.decode() if isinstance(v, bytes) else v)
+                for k, v in (info.properties or {}).items()
+            }
+            if props.get("role", "") == "database":
+                discovered_db_url = f"http://{ip}:{port}/api/schedule/"
+                logging.info(f"Discovered DB server via Zeroconf at {ip}:{port}")
         def update_service(self, zc, type_, name): pass
         def remove_service(self, zc, type_, name): pass
 
@@ -319,10 +319,12 @@ def unlock_internet():
     try:
         if platform.system() == 'Windows':
             script = (
+                "$Error.Clear(); "
                 "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockInternet' -ErrorAction SilentlyContinue; "
                 "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockIPv6' -ErrorAction SilentlyContinue; "
                 "Remove-NetFirewallRule -DisplayName 'ExamSystem_BlockAll' -ErrorAction SilentlyContinue; "
-                "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue;"
+                "Remove-NetFirewallRule -DisplayName 'ExamSystem_AllowLAN' -ErrorAction SilentlyContinue; "
+                "exit 0"
             )
             res1 = subprocess.run([
                 'powershell', '-Command', script
