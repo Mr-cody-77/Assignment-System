@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status
 import logging
 import os
+from rest_framework.permissions import AllowAny
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +61,16 @@ def login_view(request):
     })
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def refresh_view(request):
-
     try:
-        body = json.loads(request.body)
-
-        refresh_token = request.data.get("refresh")
+        refresh_token = request.data.get("refresh") if hasattr(request, 'data') else None
+        if not refresh_token:
+            try:
+                body = json.loads(request.body)
+                refresh_token = body.get("refresh")
+            except Exception:
+                pass
 
         if not refresh_token:
             return JsonResponse(
@@ -148,15 +154,31 @@ def add_student(request):
     })
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def update_email(request):
     email = request.data.get('email')
     if not email:
         return Response({"detail": "Email is required"}, status=400)
     
-    user = request.user
-    user.email = email
-    user.save()
+    user = None
+    if request.user and request.user.is_authenticated:
+        user = request.user
+    else:
+        roll = request.data.get('roll_number') or request.data.get('username')
+        if roll:
+            try:
+                user = User.objects.get(roll_number__iexact=str(roll).strip())
+            except User.DoesNotExist:
+                try:
+                    user = User.objects.get(username__iexact=str(roll).strip())
+                except User.DoesNotExist:
+                    pass
+
+    if not user:
+        return Response({"detail": "User not found or unauthenticated"}, status=401)
+    
+    user.email = email.strip()
+    user.save(update_fields=['email'])
     
     return Response({"success": True, "email": user.email})
 

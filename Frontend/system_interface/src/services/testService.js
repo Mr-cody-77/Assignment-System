@@ -46,10 +46,13 @@ export const generateTestCases = async (data) => {
   return res.data;
 };
 
-export const submitTest = async (testId, roll_number = null) => {
+export const submitTest = async (testId, roll_number = null, email = null) => {
   const payload = { test_id: testId };
   if (roll_number) {
     payload.roll_number = roll_number;
+  }
+  if (email) {
+    payload.email = email;
   }
   const res = await backendRequest.post(endpoints.proxiedSubmitTest(), payload);
   return res.data;
@@ -68,4 +71,3 @@ export const grantReattempt = async (testId, formData) => {
   });
   return res.data;
 };
-

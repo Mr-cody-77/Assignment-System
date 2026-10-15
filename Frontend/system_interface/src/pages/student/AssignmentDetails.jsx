@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/useToast';
@@ -13,6 +13,7 @@ import { runVisibleTestCases } from '../../services/localExecutionService';
 import Timer from '../../components/Timer/Timer';
 import { getTestById } from '../../services/testService';
 import styles from './AssignmentDetails.module.css';
+import TestResultScreen from '../../components/TestResultScreen/TestResultScreen';
 
 // BUG-09 FIX: Import shared utilities — no more duplicated buildSubmitQuestion /
 // addPointsToCases logic that could diverge from TestQuestions.jsx
@@ -28,6 +29,8 @@ const AssignmentDetails = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [question, setQuestion] = useState(null);
+  const [test, setTest] = useState(null);
+  const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -52,14 +55,11 @@ const AssignmentDetails = () => {
   const [terminalResults, setTerminalResults] = useState(null);
 
   const examActive = localStorage.getItem('exam_active') === 'true';
+  const initialExamActive = useRef(examActive);
+  const examSubmittedRef = useRef(false);
   const examDuration = parseInt(localStorage.getItem('exam_duration') || '60', 10);
 
-  // BUG-07 FIX: Use the single shared exam submission hook.
-  // This replaces the duplicated confirmExamEnd pipeline that previously
-  // existed only in this component and behaved differently from TestQuestions:
-  //  - it never fetched results after submitting
-  //  - it used only user.username (not user.roll_number || user.username) when polling
-  //  - it always navigated to /student instead of showing a result screen
+  // Use the single shared exam submission hook.
   const {
     submitting: examSubmitting,
     emailInput,
@@ -73,30 +73,68 @@ const AssignmentDetails = () => {
   } = useExamSubmit({
     user,
     addToast,
-    onSuccess: ({ test, results }) => {
-      // After exam submit from the question panel, navigate to the student
-      // dashboard (the result screen lives in TestQuestions).
-      navigate('/student');
+    onSuccess: ({ test: submittedTest, results }) => {
+      examSubmittedRef.current = true;
+      setError('');
+      // Show the inline result screen after submission — exactly like TestQuestions.jsx
+      if (submittedTest) {
+        setTestResult({ test: submittedTest, results });
+      } else if (test) {
+        setTestResult({ test, results });
+      } else {
+        navigate('/student');
+      }
     },
   });
 
+  const onInitiateSubmitTest = () => {
+    // Ensure the current editor code and language are cached before submitting
+    if (id && code) {
+      sessionStorage.setItem(`code_cache_${id}`, code);
+      sessionStorage.setItem(`language_cache_${id}`, language);
+    }
+    handleExamEnd();
+  };
+
   useEffect(() => {
-    if (!examActive) {
+    // If test was already submitted or result is displayed, do NOT fetch question or redirect!
+    if (testResult || examSubmittedRef.current) return;
+
+    // Only redirect if exam was NOT active when arriving, and no result or submit in flight
+    if (!initialExamActive.current && !examSubmitting) {
       navigate('/student');
       return;
     }
+
+    const testId = localStorage.getItem('exam_test_id');
+    if (testId) {
+      getTestById(testId)
+        .then((data) => setTest(data))
+        .catch((err) => console.error('Failed to load test in AssignmentDetails:', err));
+    }
+
     const fetchQuestion = async () => {
+      if (examSubmittedRef.current || testResult || examSubmitting) return;
       try {
         const data = await getAssignmentById(id);
+        if (examSubmittedRef.current || testResult) return;
         setQuestion(data);
+        if (!testId && data?.test) {
+          getTestById(data.test)
+            .then((t) => setTest(t))
+            .catch((e) => console.error('Failed to load test from question:', e));
+        }
       } catch (err) {
-        setError('Failed to load assignment.');
+        if (!examSubmittedRef.current && !testResult && !examSubmitting) {
+          const msg = err?.response?.data?.error || err?.message || 'Failed to load assignment.';
+          setError(msg);
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchQuestion();
-  }, [id, examActive, navigate]);
+  }, [id, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync language and code when the question ID changes
   useEffect(() => {
@@ -183,13 +221,38 @@ const AssignmentDetails = () => {
     try { return JSON.parse(raw); } catch { return [{ input: String(raw) }]; }
   };
 
+  /* ── Result screen: show dashboard after submitting test ── */
+  if (testResult) {
+    return (
+      <div className="app-shell">
+        <Sidebar role="student" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="main-content">
+          <Header
+            title="Test Results"
+            subtitle="Your final score"
+            onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          />
+          <div className="page-body" style={{ padding: 0 }}>
+            <TestResultScreen
+              test={testResult.test}
+              results={testResult.results}
+              onDone={() => navigate('/student')}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return <Loader fullPage text="Loading problem…" />;
   if (error || !question) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 16 }}>
         <span style={{ fontSize: 48 }}>😕</span>
-        <p style={{ color: 'var(--clr-error)' }}>{error || 'Assignment not found'}</p>
-        <button className="btn btn-secondary" onClick={() => navigate('/student/assignments')}>← Back</button>
+        <p style={{ color: 'var(--clr-error)', maxWidth: 480, textAlign: 'center', lineHeight: 1.5 }}>
+          {error || 'Assignment not found'}
+        </p>
+        <button className="btn btn-primary" onClick={() => navigate('/student')}>← Back to Dashboard</button>
       </div>
     );
   }
@@ -209,10 +272,20 @@ const AssignmentDetails = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {examActive && (
                 <>
-                  <Timer durationMinutes={examDuration} onTimeUp={handleTimeUp} />
+                  <Timer
+                    durationMinutes={examDuration}
+                    onTimeUp={() => {
+                      examSubmittedRef.current = true;
+                      if (id && code) {
+                        sessionStorage.setItem(`code_cache_${id}`, code);
+                        sessionStorage.setItem(`language_cache_${id}`, language);
+                      }
+                      handleTimeUp(test);
+                    }}
+                  />
                   <button
                     className="btn btn-success btn-sm"
-                    onClick={handleExamEnd}
+                    onClick={onInitiateSubmitTest}
                     disabled={examSubmitting}
                   >
                     {examSubmitting ? (
@@ -410,7 +483,17 @@ const AssignmentDetails = () => {
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--clr-text-2)', lineHeight: 1.5 }}>
               Where would you like to receive your final score and plagiarism check results?
             </p>
-            <form onSubmit={(e) => confirmExamEnd(e, null)} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
+            <form
+              onSubmit={(e) => {
+                examSubmittedRef.current = true;
+                if (id && code) {
+                  sessionStorage.setItem(`code_cache_${id}`, code);
+                  sessionStorage.setItem(`language_cache_${id}`, language);
+                }
+                confirmExamEnd(e, test);
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}
+            >
               <div>
                 <input
                   type="email"

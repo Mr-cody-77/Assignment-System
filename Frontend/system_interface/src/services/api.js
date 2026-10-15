@@ -290,7 +290,12 @@ const installAuthInterceptors = (client) => {
         original.headers.Authorization = `Bearer ${newAccessToken}`;
         return client(original);
       } catch (refreshError) {
-        clearAuthStorage();
+        // Do NOT clear auth storage and force logout if an exam is in progress!
+        // Clearing auth storage here wipes the student's session and kicks them to the landing page.
+        const examActive = localStorage.getItem('exam_active') === 'true';
+        if (!examActive) {
+          clearAuthStorage();
+        }
         return Promise.reject(refreshError);
       }
     }

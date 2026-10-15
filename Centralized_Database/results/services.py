@@ -34,14 +34,19 @@ from results.models import PlagiarismDetected
 
 logger = logging.getLogger('email_daemon')
 
-def trigger_email_daemon(schedule_id):
+def trigger_email_daemon(schedule_id=None):
     from questions.models import LockdownSchedule
-    try:
-        schedule = LockdownSchedule.objects.get(id=schedule_id)
-    except LockdownSchedule.DoesNotExist:
-        return
-        
-    logger.info(f"Triggering email daemon for schedule ending at {schedule.end_time}")
+    schedule = None
+    if schedule_id is not None:
+        try:
+            schedule = LockdownSchedule.objects.get(id=schedule_id)
+        except LockdownSchedule.DoesNotExist:
+            logger.warning(f"LockdownSchedule {schedule_id} does not exist.")
+            
+    if schedule:
+        logger.info(f"Triggering email daemon for schedule ending at {schedule.end_time}")
+    else:
+        logger.info("Triggering email daemon for all pending student results.")
     
     # We find all students who have a valid email set
     students = User.objects.filter(role='student').exclude(email='')

@@ -42,7 +42,8 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
   }, []);
 
   /** Execute the full submit pipeline after the user confirms their email */
-  const confirmExamEnd = useCallback(async (e, test) => {
+  /** Execute the full submit pipeline after the user confirms their email */
+  const confirmExamEnd = useCallback(async (e, test, extraContext = {}) => {
     if (e) e.preventDefault();
 
     if (!emailInput.trim()) {
@@ -54,7 +55,7 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
 
     // 1. Persist preferred email
     try {
-      await updateUserEmail(emailInput);
+      await updateUserEmail(emailInput, user?.roll_number || user?.username);
     } catch {
       addToast('Failed to save email, but submitting test…', 'warning');
     }
@@ -62,7 +63,7 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
     setEmailSubmitting(false);
     setShowEmailModal(false);
 
-    await _runSubmit(test);
+    await _runSubmit(test, extraContext);
   }, [emailInput, user, addToast, onSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
@@ -70,26 +71,92 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
    * Can also be called directly (e.g. timer expiry auto-submit) by passing
    * `skipEmailStep=true`.
    */
-  const _runSubmit = useCallback(async (test, skipEmailStep = false) => {
+  const _runSubmit = useCallback(async (test, extraContext = {}, skipEmailStep = false) => {
     if (submitting) return;
     setSubmitting(true);
 
-    const testId = localStorage.getItem('exam_test_id') || (test && test.id);
+    let resolvedTest = test;
+    const testId = localStorage.getItem('exam_test_id') || (resolvedTest && resolvedTest.id);
+
+    // If test was not passed or is missing questions, fetch it dynamically
+    if ((!resolvedTest || !Array.isArray(resolvedTest.questions) || resolvedTest.questions.length === 0) && testId) {
+      try {
+        const { getTestById } = await import('../services/testService');
+        resolvedTest = await getTestById(testId);
+      } catch (err) {
+        console.error('Failed to fetch test in useExamSubmit:', err);
+      }
+    }
+
     const resolvedEmail =
       emailInput ||
       localStorage.getItem('preferred_email') ||
       user?.email ||
       '';
 
-    // Step A: Auto-submit cached code for every question in the test
-    if (test && Array.isArray(test.questions) && user) {
-      for (const q of test.questions) {
-        const cachedCode = sessionStorage.getItem(`code_cache_${q.id}`);
-        const cachedLang = sessionStorage.getItem(`language_cache_${q.id}`) || 'python';
+    // Collect all questions we can submit:
+    // 1. From resolvedTest.questions
+    // 2. From extraContext.currentQuestion
+    // 3. From sessionStorage code_cache_<id> keys
+    const questionsMap = new Map();
+
+    if (resolvedTest && Array.isArray(resolvedTest.questions)) {
+      resolvedTest.questions.forEach((q) => {
+        if (q && q.id) questionsMap.set(String(q.id), q);
+      });
+    }
+
+    if (extraContext?.currentQuestion?.id) {
+      questionsMap.set(String(extraContext.currentQuestion.id), extraContext.currentQuestion);
+    }
+
+    // Also check any code_cache_<id> in sessionStorage
+    const cachedQuestionIds = [];
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('code_cache_')) {
+          const qId = key.replace('code_cache_', '');
+          cachedQuestionIds.push(qId);
+        }
+      }
+    } catch {}
+
+    // If there are cached questions not yet in questionsMap, try to fetch them
+    for (const qId of cachedQuestionIds) {
+      if (!questionsMap.has(String(qId))) {
+        try {
+          const { getAssignmentById } = await import('../services/assignmentService');
+          const fetchedQ = await getAssignmentById(qId);
+          if (fetchedQ) {
+            questionsMap.set(String(qId), fetchedQ);
+          }
+        } catch (fetchErr) {
+          console.error(`Failed to fetch cached question ${qId}:`, fetchErr);
+        }
+      }
+    }
+
+    // Ensure resolvedTest is populated with all questions we have
+    if (!resolvedTest) {
+      resolvedTest = {
+        id: testId || 'test',
+        title: 'Test Submission',
+        questions: Array.from(questionsMap.values()),
+      };
+    } else if (!Array.isArray(resolvedTest.questions) || resolvedTest.questions.length === 0) {
+      resolvedTest.questions = Array.from(questionsMap.values());
+    }
+
+    // Step A: Auto-submit cached code for every question in questionsMap
+    if (user) {
+      for (const [qId, q] of questionsMap.entries()) {
+        const cachedCode = sessionStorage.getItem(`code_cache_${qId}`);
+        const cachedLang = sessionStorage.getItem(`language_cache_${qId}`) || 'python';
 
         if (cachedCode) {
           // Remove immediately to prevent re-submission if the loop runs again
-          sessionStorage.removeItem(`code_cache_${q.id}`);
+          sessionStorage.removeItem(`code_cache_${qId}`);
           try {
             await submitTask({
               // BUG-07 FIX: Use roll_number with username fallback consistently
@@ -100,7 +167,7 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
               email:       resolvedEmail,
             });
           } catch (err) {
-            console.error(`Failed to auto-submit code for Q${q.id}:`, err);
+            console.error(`Failed to auto-submit code for Q${qId}:`, err);
           }
         }
       }
@@ -125,7 +192,7 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
 
     // Step B: Formally submit the test record
     try {
-      await submitTest(testId, user?.roll_number || user?.username);
+      await submitTest(testId, user?.roll_number || user?.username, resolvedEmail);
       addToast('Test submitted successfully!', 'success');
     } catch (err) {
       console.error('Failed to submit test:', err);
@@ -133,8 +200,6 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
     }
 
     // Step C: Fetch per-question results
-    // BUG-07 FIX: Both components now fetch results (AssignmentDetails
-    // previously navigated away without fetching anything).
     let results = [];
     try {
       if (user) {
@@ -143,6 +208,10 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
       }
     } catch (err) {
       console.error('Failed to fetch results from Central DB, falling back to local task status:', err);
+    }
+
+    // Local fallback if Central DB returned no results or failed
+    if (!results || results.length === 0) {
       try {
         if (user) {
           const statuses = await getTaskStatus();
@@ -168,19 +237,19 @@ export function useExamSubmit({ user, addToast, onSuccess }) {
       }
     }
 
-    // Step D: Clear exam state
+    // Step D: Hand results back to the component FIRST so state updates before storage is wiped
+    if (typeof onSuccess === 'function') {
+      onSuccess({ test: resolvedTest || test, results });
+    }
+
+    // Step E: Clear exam state
     clearExamStorage();
     setSubmitting(false);
-
-    // Step E: Hand results back to the component
-    if (typeof onSuccess === 'function') {
-      onSuccess({ test, results });
-    }
   }, [submitting, emailInput, user, addToast, onSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** For timer-expiry auto-submit (no email modal) */
-  const handleTimeUp = useCallback((test) => {
-    _runSubmit(test, true);
+  const handleTimeUp = useCallback((test, extraContext = {}) => {
+    _runSubmit(test, extraContext, true);
   }, [_runSubmit]);
 
   return {

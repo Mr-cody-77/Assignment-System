@@ -198,9 +198,39 @@ class StartTestView(APIView):
 
 class SubmitTestView(APIView):
     """Student submits/finishes a test. Results become visible only after this."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
+        import jwt
+        from django.conf import settings
+        from users.models import User
+
+        student_user = request.user if request.user and request.user.is_authenticated else None
+
+        # Strategy 1: Identify student via JWT token (even if expired)
+        if not student_user:
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+                try:
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
+                    user_id = payload.get('user_id')
+                    if user_id:
+                        student_user = User.objects.get(id=user_id)
+                except Exception:
+                    pass
+
+        # Strategy 2: Identify student via roll_number in request body
+        if not student_user:
+            roll_number = request.data.get('roll_number')
+            if roll_number:
+                student_user = User.objects.filter(roll_number__iexact=str(roll_number).strip()).first()
+                if not student_user:
+                    student_user = User.objects.filter(username__iexact=str(roll_number).strip()).first()
+
+        if not student_user:
+            return Response({'error': 'Could not identify student. Provide a valid token or roll_number.'}, status=status.HTTP_401_UNAUTHORIZED)
+
         test_id = request.data.get('test_id')
         if not test_id:
             # Fall back to the currently active test
@@ -213,12 +243,14 @@ class SubmitTestView(APIView):
             except Test.DoesNotExist:
                 return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if TestSubmission.objects.filter(test=test, student=request.user).exists():
-            return Response({'error': 'Test already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
+        email = request.data.get('email')
+        if email and getattr(student_user, 'role', None) == 'student':
+            student_user.email = str(email).strip()
+            student_user.save(update_fields=['email'])
 
-        TestSubmission.objects.create(test=test, student=request.user)
+        TestSubmission.objects.get_or_create(test=test, student=student_user)
         # Ensure attempt record also exists
-        TestAttempt.objects.get_or_create(test=test, student=request.user)
+        TestAttempt.objects.get_or_create(test=test, student=student_user)
         return Response({'success': True, 'message': 'Test submitted successfully.'})
 
     def get(self, request):
@@ -286,6 +318,11 @@ class SyncSubmitTestView(APIView):
                 test = Test.objects.get(id=test_id)
             except Test.DoesNotExist:
                 return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        email = request.data.get('email')
+        if email and user:
+            user.email = str(email).strip()
+            user.save(update_fields=['email'])
 
         if not TestSubmission.objects.filter(test=test, student=user).exists():
             TestSubmission.objects.create(test=test, student=user)

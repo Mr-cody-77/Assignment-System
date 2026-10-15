@@ -13,15 +13,19 @@ import { endpoints } from '../config/endpointResolver';
  * }
  * Response: { task_id, status }
  */
-export const submitTask = async ({ roll_number, question, language, solution }) => {
+export const submitTask = async ({ roll_number, question, language, solution, email }) => {
   const token = localStorage.getItem('access_token');
-  const res = await backendRequest.post(endpoints.submitTask(), {
+  const payload = {
     roll_number,
     question,
     language,
     solution,
     token,
-  });
+  };
+  if (email) {
+    payload.email = email;
+  }
+  const res = await backendRequest.post(endpoints.submitTask(), payload);
   return res.data;
 };
 

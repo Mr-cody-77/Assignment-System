@@ -52,7 +52,11 @@ export const bulkUploadStudents = async (file) => {
 /**
  * Update the preferred email for the logged-in student.
  */
-export const updateUserEmail = async (email) => {
-  const res = await centralRequest.post(endpoints.updateEmail(), { email });
+export const updateUserEmail = async (email, roll_number = null) => {
+  const payload = { email };
+  if (roll_number) {
+    payload.roll_number = roll_number;
+  }
+  const res = await centralRequest.post(endpoints.updateEmail(), payload);
   return res.data;
 };

@@ -16,9 +16,17 @@ def get_persistent_node_id() -> str:
     if _CACHED_NODE_ID:
         return _CACHED_NODE_ID
 
-    # Locate storage path inside System_Management
+    # 1. Direct environment variable override
+    env_id = os.environ.get("NODE_ID")
+    if env_id and env_id.strip():
+        _CACHED_NODE_ID = env_id.strip()
+        return _CACHED_NODE_ID
+
+    # 2. Locate storage path inside System_Management (scoped by port if present)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    id_file_path = os.path.join(base_dir, ".node_id")
+    port = os.environ.get("NODE_PORT")
+    id_file_name = f".node_id_{port}" if port else ".node_id"
+    id_file_path = os.path.join(base_dir, id_file_name)
 
     node_id = None
     if os.path.exists(id_file_path):

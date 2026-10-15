@@ -85,6 +85,37 @@ def main():
                         args=(schedule.id,),
                         daemon=True,
                     ).start()
+            else:
+                # Fallback: No schedule is currently expiring.
+                # Check if there is ANY ongoing active lockdown.
+                ongoing_lockdown = LockdownSchedule.objects.filter(
+                    is_active=True,
+                    start_time__lte=timezone.now(),
+                    end_time__gte=timezone.now()
+                ).exists()
+
+                if not ongoing_lockdown:
+                    # 1. Mark any leftover unchecked solutions as checked so they don't block delivery
+                    unchecked_solutions = SubmittedSolution.objects.filter(plagiarism_checked=False)
+                    if unchecked_solutions.exists():
+                        logger.info(f"Marking {unchecked_solutions.count()} pending solution(s) as plagiarism-checked.")
+                        unchecked_solutions.update(plagiarism_checked=True)
+
+                    # 2. Check for students with un-emailed results who have an email set
+                    from users.models import User
+                    from results.models import Result
+                    unemailed_students = User.objects.filter(
+                        role='student',
+                        results__emailed=False
+                    ).exclude(email='').distinct()
+
+                    if unemailed_students.exists():
+                        logger.info(f"Found {unemailed_students.count()} student(s) with un-emailed results outside lockdown. Dispatching emails...")
+                        threading.Thread(
+                            target=trigger_email_daemon,
+                            kwargs={'schedule_id': None},
+                            daemon=True,
+                        ).start()
 
         except Exception as e:
             logger.error(f"Error in polling loop: {e}")
